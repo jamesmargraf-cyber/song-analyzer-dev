@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stereo Map — Student</title>
+  <link rel="icon" href="/stereomap/favicon.ico" sizes="any">
+  <link rel="icon" href="/stereomap/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/stereomap/apple-touch-icon.png">
+  <link rel="stylesheet" href="/stereomap/style.css">
+  <style>
+    .attempt-pip {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 1.5px solid var(--border2);
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    .attempt-pip.used { background: var(--accent); border-color: var(--accent); }
+    .attempt-pip.best { background: var(--green); border-color: var(--green); }
+    .attempt-counter {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text2);
+    }
+    .attempt-pips { display: flex; gap: 5px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+
+<!-- SONG LIST VIEW -->
+<div id="view-songs" class="page">
+  <div class="page-title">Songs</div>
+  <div class="page-sub" id="songs-sub">Choose a song to work on.</div>
+  <div class="song-list" id="song-list">
+    <div class="empty"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ACTIVITY VIEW -->
+<div id="view-activity" class="page hidden">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+    <button class="btn sm" id="back-btn">← Songs</button>
+    <div style="flex:1; min-width:0;">
+      <div style="font-size:17px; font-weight:500;" id="activity-title">—</div>
+      <div style="font-size:13px; color:var(--text2);" id="activity-artist">—</div>
+    </div>
+    <div class="attempt-counter" id="attempt-counter" style="display:none;">
+      <span id="attempt-label">Attempt 1 of 3</span>
+      <div class="attempt-pips" id="attempt-pips"></div>
+    </div>
+  </div>
+
+  <!-- YOUTUBE PLAYER -->
+  <div id="yt-wrap" style="display:none; margin-bottom:16px;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+      <div id="yt-bar" style="display:flex; align-items:center; gap:12px; padding:10px 16px; cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+          <rect width="24" height="24" rx="4" fill="#ff0000"/>
+          <polygon points="9.5,7 9.5,17 17,12" fill="white"/>
+        </svg>
+        <span style="font-size:14px; font-weight:500; flex:1;" id="yt-bar-label">Now playing</span>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); cursor:pointer; user-select:none;">
+          <input type="checkbox" id="yt-loop" style="width:14px;height:14px;accent-color:var(--accent);">
+          Loop
+        </label>
+        <span id="yt-toggle-icon" style="font-size:12px; color:var(--text3); margin-left:4px;">▾ Show</span>
+      </div>
+      <div id="yt-player-wrap" style="height:0; overflow:hidden; transition:height 0.25s ease;">
+        <div id="yt-player-inner" style="padding:0 0 8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instructions" id="activity-instructions">
+    <strong>Listen to the song.</strong> Drag each instrument to where you think it sits in the stereo field — left or right, near or far. When you're happy with your placement, click <strong>Submit.</strong>
+  </div>
+
+  <div class="map-wrap">
+    <svg id="map-svg" viewBox="0 0 680 490"></svg>
+  </div>
+  <div class="readout" id="map-readout">Drag instruments into position</div>
+
+  <div class="btn-row" id="activity-btns">
+    <button class="btn" id="reset-btn">Reset positions</button>
+    <button class="btn primary" id="submit-btn">Submit →</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-panel hidden" id="results-panel">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+      <div class="results-title" style="margin:0;">Your results</div>
+      <div id="overall-score" style="font-family:'DM Mono',monospace; font-size:13px;"></div>
+    </div>
+    <div id="results-list"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Close</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Near</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Off</div>
+    </div>
+    <div id="try-again-wrap" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:none;">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:12px;" id="try-again-msg"></div>
+      <button class="btn primary" id="try-again-btn">Try again →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMELINE ACTIVITY VIEW -->
+<div id="view-timeline" class="page hidden">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+    <button class="btn sm" id="tl-back-btn">← Songs</button>
+    <div style="flex:1; min-width:0;">
+      <div style="font-size:17px; font-weight:500;" id="tl-activity-title">—</div>
+      <div style="font-size:13px; color:var(--text2);" id="tl-activity-artist">—</div>
+    </div>
+    <div class="attempt-counter" id="tl-attempt-counter" style="display:none;">
+      <span id="tl-attempt-label">Attempt 1 of 3</span>
+      <div class="attempt-pips" id="tl-attempt-pips"></div>
+    </div>
+  </div>
+  <div id="tl-yt-wrap" style="display:none; margin-bottom:16px;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+      <div id="tl-yt-bar" style="display:flex; align-items:center; gap:12px; padding:10px 16px; cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+          <rect width="24" height="24" rx="4" fill="#ff0000"/>
+          <polygon points="9.5,7 9.5,17 17,12" fill="white"/>
+        </svg>
+        <span style="font-size:14px; font-weight:500; flex:1;" id="tl-yt-bar-label">Now playing</span>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); cursor:pointer; user-select:none;">
+          <input type="checkbox" id="tl-yt-loop" style="width:14px;height:14px;accent-color:var(--accent);">
+          Loop
+        </label>
+        <span id="tl-yt-toggle-icon" style="font-size:12px; color:var(--text3); margin-left:4px;">▾ Show</span>
+      </div>
+      <div id="tl-yt-player-wrap" style="height:0; overflow:hidden; transition:height 0.25s ease;">
+        <div id="tl-yt-player-inner" style="padding:0 0 8px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="instructions" id="tl-instructions">
+    <strong>Listen to the song.</strong> Drag section labels from the palette onto the timeline slots in the correct order.
+  </div>
+  <div class="palette-container" id="student-palette"></div>
+  <div class="timeline-container" id="student-timeline"></div>
+  <div style="margin-top:8px; font-size:12px; color:var(--text3);">Drag sections from the palette above onto the numbered slots.</div>
+  <div class="btn-row" style="margin-top:16px;">
+    <button class="btn" id="tl-reset-btn">Reset</button>
+    <button class="btn primary" id="tl-submit-btn">Submit</button>
+  </div>
+  <div class="results-panel hidden" id="tl-results-panel">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+      <div class="results-title" style="margin:0;">Your results</div>
+      <div id="tl-overall-score" style="font-family:'DM Mono',monospace; font-size:13px;"></div>
+    </div>
+    <div id="tl-results-list"></div>
+    <div id="tl-try-again-wrap" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:none;">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:12px;" id="tl-try-again-msg"></div>
+      <button class="btn primary" id="tl-try-again-btn">Try again</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/stereomap/app.js"></script>
+<script src="/stereomap/map.js"></script>
+<script src="/stereomap/timeline.js"></script>
+<script>
+  const MAX_ATTEMPTS = 3;
+
+  let currentSong = null;
+  let studentInstruments = [];
+  let answerKey = [];
+  let currentAttempt = 1;
+  let attemptsUsed = 0;
+  let allAttempts = [];
+  let lockedInstruments = {};
+  let tlSlots = [];
+  let tlAnswerKey = [];
+  let tlSectionTypes = [];
+  let tlLockedSlots = {};
+  let tlAttemptsUsed = 0;
+  let tlAllAttempts = [];
+  let tlCurrentSong = null;
+  let tlYtVideoId = null;
+  let tlYtExpanded = false;
+
+  // ── INIT ──
+  (async () => {
+    let user = null;
+    const { data: { session } } = await db.auth.getSession();
+    user = session?.user ?? null;
+    if (!user) {
+      user = await new Promise(resolve => {
+        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
+          if (session?.user) { subscription.unsubscribe(); resolve(session.user); }
+        });
+        setTimeout(() => { subscription.unsubscribe(); resolve(null); }, 5000);
+      });
+    }
+    if (!user) { window.location.href = '/stereomap/index.html'; return; }
+    await ensureProfile(user);
+    const teacher = await isTeacher(user);
+    const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
+    if (teacher && !isPreview) { window.location.href = '/stereomap/teacher.html'; return; }
+    renderNav('student');
+    loadSongs(user);
+    attachListeners();
+  })();
+
+  function attachListeners() {
+    document.getElementById('back-btn').addEventListener('click', backToSongs);
+    document.getElementById('tl-back-btn').addEventListener('click', () => {
+      tlYtVideoId = null;
+      document.getElementById('tl-yt-player-inner').innerHTML = '';
+      document.getElementById('tl-yt-wrap').style.display = 'none';
+      tlCurrentSong = null;
+      showView('view-songs');
+      getUser().then(u => loadSongs(u));
+    });
+    document.getElementById('tl-reset-btn').addEventListener('click', () => {
+      tlSlots = tlAnswerKey.map((_, idx) => tlLockedSlots[idx] ? tlSlots[idx] : null);
+      renderPalette('student-palette', tlSectionTypes, null);
+      renderTimeline('student-timeline', tlSlots, null, tlLockedSlots, true, s => { tlSlots = s; });
+    });
+    document.getElementById('tl-submit-btn').addEventListener('click', tlSubmit);
+    document.getElementById('tl-yt-bar').addEventListener('click', () => {
+      tlYtExpanded = !tlYtExpanded;
+      document.getElementById('tl-yt-player-wrap').style.height = tlYtExpanded ? '203px' : '0';
+      document.getElementById('tl-yt-toggle-icon').textContent = tlYtExpanded ? '▴ Hide' : '▾ Show';
+    });
+    document.getElementById('tl-yt-loop').addEventListener('change', e => {
+      e.stopPropagation();
+      if (!tlYtVideoId) return;
+      document.getElementById('tl-yt-player-inner').innerHTML = buildYTIframe(tlYtVideoId, e.target.checked);
+      if (tlYtExpanded) document.getElementById('tl-yt-player-wrap').style.height = '203px';
+    });
+    document.getElementById('reset-btn').addEventListener('click', resetPositions);
+    document.getElementById('submit-btn').addEventListener('click', submitAttempt);
+    document.getElementById('yt-bar').addEventListener('click', toggleYT);
+    document.getElementById('yt-loop').addEventListener('change', e => {
+      e.stopPropagation();
+      setLoop(e.target.checked);
+    });
+  }
+
+  // ── LOAD SONGS ──
+  async function loadSongs(user) {
+    const { data: songs, error } = await db
+      .from('songs')
+      .select('id, title, artist, audio_url, published')
+      .eq('published', true)
+      .order('created_at', { ascending: false });
+
+    if (error) { showToast('Error loading songs', 'error'); return; }
+
+    // Get all submissions for this student
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('song_id, overall_score, attempt_number')
+      .eq('student_id', user.id);
+
+    // Build map: song_id -> { bestScore, attemptsUsed }
+    const songMap = {};
+    (submissions || []).forEach(s => {
+      if (!songMap[s.song_id]) songMap[s.song_id] = { bestScore: 0, attemptsUsed: 0 };
+      songMap[s.song_id].attemptsUsed = Math.max(songMap[s.song_id].attemptsUsed, s.attempt_number);
+      songMap[s.song_id].bestScore = Math.max(songMap[s.song_id].bestScore, s.overall_score);
+    });
+
+    const list = document.getElementById('song-list');
+
+    if (!songs || songs.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🎵</div><div class="empty-text">No songs available yet. Check back soon.</div></div>`;
+      return;
+    }
+
+    document.getElementById('songs-sub').textContent = `${songs.length} song${songs.length !== 1 ? 's' : ''} available.`;
+    list.innerHTML = '';
+
+    songs.forEach(song => {
+      const info = songMap[song.id];
+      const attemptsUsed = info?.attemptsUsed || 0;
+      const bestScore = info?.bestScore || 0;
+      const done = attemptsUsed > 0;
+      const maxed = attemptsUsed >= MAX_ATTEMPTS || bestScore === 100;
+
+      let statusText, statusClass, btnText;
+      if (!done) {
+        statusText = 'Not started'; statusClass = 'new'; btnText = 'Start →';
+      } else if (maxed) {
+        statusText = bestScore === 100 ? 'Perfect!' : 'Complete'; statusClass = 'done'; btnText = 'Review';
+      } else {
+        statusText = `Attempt ${attemptsUsed}/${MAX_ATTEMPTS}`; statusClass = 'pending'; btnText = 'Continue →';
+      }
+
+      const card = document.createElement('div');
+      card.className = 'song-card';
+      const activityBadge = (song.activity_type || 'stereo') === 'structure'
+        ? '<span style="font-family:'DM Mono',monospace;font-size:10px;background:rgba(79,195,247,0.1);color:var(--accent);border:1px solid rgba(79,195,247,0.3);border-radius:4px;padding:1px 5px;margin-right:4px;">structure</span>'
+        : '';
+      card.innerHTML = `
+        <div class="song-info">
+          <div class="song-title">${activityBadge}${esc(song.title)}</div>
+          <div class="song-artist">${esc(song.artist || '')}</div>
+        </div>
+        ${done ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);">Best: ${bestScore}%</span>` : ''}
+        <span class="song-status ${statusClass}">${statusText}</span>
+        <button class="btn sm primary">${btnText}</button>
+      `;
+      card.querySelector('button').addEventListener('click', () => openSong(song.id));
+      list.appendChild(card);
+    });
+  }
+
+  // ── OPEN SONG ──
+  async function openSong(songId) {
+    const user = await getUser();
+
+    const { data: song } = await db.from('songs').select('*').eq('id', songId).single();
+    if (!song) { showToast('Song not found', 'error'); return; }
+
+    if ((song.activity_type || 'stereo') === 'structure') {
+      openTimelineSong(song, user);
+      return;
+    }
+
+    currentSong = song;
+
+    const instruments = song.instruments || [];
+    answerKey = instruments.map(i => ({
+      angle: i.angle,
+      radius: i.radius,
+      widthMin: i.widthMin,
+      widthMax: i.widthMax,
+      width: i.width,
+      type: i.type
+    }));
+
+    // Load all attempts for this song
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('*')
+      .eq('song_id', songId)
+      .eq('student_id', user.id)
+      .order('attempt_number', { ascending: true });
+
+    allAttempts = submissions || [];
+    attemptsUsed = allAttempts.length;
+    currentAttempt = attemptsUsed + 1;
+    const bestScore = allAttempts.length > 0 ? Math.max(...allAttempts.map(a => a.overall_score)) : 0;
+    const isMaxed = attemptsUsed >= MAX_ATTEMPTS || bestScore === 100;
+    lockedInstruments = {};
+    if (attemptsUsed > 0 && !isMaxed) {
+      const lastResults = allAttempts[allAttempts.length - 1].results || [];
+      lastResults.forEach((r, idx) => {
+        if (r.type === 'stereo') {
+          if (r.centerGrade === 'close' && r.widthGrade === 'good') lockedInstruments[idx] = 'full';
+          else if (r.centerGrade === 'close') lockedInstruments[idx] = 'center';
+        } else {
+          if (r.grade === 'close') lockedInstruments[idx] = 'full';
+        }
+      });
+    }
+
+    // Set up instruments
+    if (isMaxed) {
+      // Show last attempt positions with correct answers revealed
+      const last = allAttempts[allAttempts.length - 1];
+      studentInstruments = instruments.map((inst, idx) => ({
+        ...inst,
+        angle: last.student_positions[idx]?.angle ?? inst.angle,
+        radius: last.student_positions[idx]?.radius ?? inst.radius,
+      }));
+    } else {
+      const lastPositions = attemptsUsed > 0 ? allAttempts[allAttempts.length - 1].student_positions : null;
+      studentInstruments = scramblePositions(instruments).map((inst, idx) => {
+        if (lockedInstruments[idx] && lastPositions) {
+          return {
+            ...inst,
+            angle: lastPositions[idx]?.angle ?? inst.angle,
+            radius: lastPositions[idx]?.radius ?? inst.radius,
+          };
+        }
+        return inst;
+      });
+    }
+
+    // Header
+    document.getElementById('activity-title').textContent = song.title;
+    document.getElementById('activity-artist').textContent = song.artist || '';
+
+    // Attempt counter
+    renderAttemptCounter(attemptsUsed, isMaxed);
+
+    // YouTube
+    setupYTPlayer(song.audio_url, song.title);
+
+    // Map
+    const svgEl = document.getElementById('map-svg');
+    buildMapBase(svgEl);
+    renderDots(svgEl, studentInstruments, null, isMaxed ? answerKey : null, isMaxed ? {} : lockedInstruments);
+
+    // Results / buttons
+    document.getElementById('results-panel').classList.add('hidden');
+    document.getElementById('try-again-wrap').style.display = 'none';
+
+    if (isMaxed) {
+      // Show final results with correct positions revealed
+      showResults(studentInstruments, true);
+      document.getElementById('activity-instructions').innerHTML =
+        'All attempts used. Dashed circles show the <strong>correct positions</strong>.';
+      document.getElementById('reset-btn').style.display = 'none';
+      document.getElementById('submit-btn').style.display = 'none';
+      // Show score history
+      showScoreHistory();
+    } else if (attemptsUsed > 0) {
+      // Has previous attempts, show last result without correct positions
+      const last = allAttempts[allAttempts.length - 1];
+      showResults(studentInstruments, false);
+      document.getElementById('activity-instructions').innerHTML =
+        `Attempt ${attemptsUsed} done. <strong>Listen again</strong> and drag instruments to better positions, then submit your next attempt.`;
+      document.getElementById('reset-btn').style.display = '';
+      document.getElementById('submit-btn').style.display = '';
+      document.getElementById('submit-btn').textContent = `Submit attempt ${currentAttempt} →`;
+      showTryAgain();
+    } else {
+      // Fresh start
+      document.getElementById('activity-instructions').innerHTML =
+        '<strong>Listen to the song.</strong> Drag each instrument to where you think it sits in the stereo field — left or right, near or far. When you\'re happy with your placement, click <strong>Submit.</strong>';
+      document.getElementById('reset-btn').style.display = '';
+      document.getElementById('submit-btn').style.display = '';
+      document.getElementById('submit-btn').textContent = 'Submit →';
+    }
+
+    showView('view-activity');
+  }
+
+  // ── ATTEMPT COUNTER PIPS ──
+  function renderAttemptCounter(used, isMaxed) {
+    const counter = document.getElementById('attempt-counter');
+    const label = document.getElementById('attempt-label');
+    const pips = document.getElementById('attempt-pips');
+
+    counter.style.display = 'flex';
+    label.textContent = isMaxed ? 'All attempts used' : `Attempt ${used + 1} of ${MAX_ATTEMPTS}`;
+
+    pips.innerHTML = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'attempt-pip' + (i < used ? ' used' : '');
+      pips.appendChild(pip);
+    }
+  }
+
+  // ── RESET ──
+  function resetPositions() {
+    studentInstruments = scramblePositions(studentInstruments);
+    const svgEl = document.getElementById('map-svg');
+    buildMapBase(svgEl);
+    renderDots(svgEl, studentInstruments, null, null, lockedInstruments);
+    document.getElementById('results-panel').classList.add('hidden');
+  }
+
+  // ── SUBMIT ──
+  async function submitAttempt() {
+    const user = await getUser();
+    if (!user || !currentSong) return;
+
+    const results = scoreAttempt(studentInstruments, answerKey);
+    const overall = Math.round(results.reduce((s, r) => s + r.score, 0) / results.length);
+    const positions = studentInstruments.map(i => ({ angle: i.angle, radius: i.radius }));
+    const attemptNum = attemptsUsed + 1;
+
+    const { error } = await db.from('submissions').insert({
+      student_id: user.id,
+      song_id: currentSong.id,
+      student_positions: positions,
+      results: results,
+      overall_score: overall,
+      attempt_number: attemptNum,
+      attempts_used: attemptNum,
+      submitted_at: new Date().toISOString(),
+    });
+
+    if (error) { showToast('Error saving — check your connection', 'error'); return; }
+
+    attemptsUsed = attemptNum;
+    currentAttempt = attemptsUsed + 1;
+    const isPerfect = overall === 100;
+    const isMaxed = attemptsUsed >= MAX_ATTEMPTS || isPerfect;
+
+    allAttempts.push({ student_positions: positions, results, overall_score: overall, attempt_number: attemptNum });
+
+    if (!isMaxed) {
+      results.forEach((r, idx) => {
+        if (r.type === 'stereo') {
+          if (r.centerGrade === 'close' && r.widthGrade === 'good') lockedInstruments[idx] = 'full';
+          else if (r.centerGrade === 'close') lockedInstruments[idx] = 'center';
+        } else {
+          if (r.grade === 'close') lockedInstruments[idx] = 'full';
+        }
+      });
+    }
+
+    renderAttemptCounter(attemptsUsed, isMaxed);
+
+    // Rebuild map — show correct positions only if series is done
+    const svgEl = document.getElementById('map-svg');
+    buildMapBase(svgEl);
+    renderDots(svgEl, studentInstruments, null, isMaxed ? answerKey : null, isMaxed ? {} : lockedInstruments);
+
+    showResults(studentInstruments, isMaxed);
+
+    if (isMaxed) {
+      document.getElementById('activity-instructions').innerHTML = isPerfect
+        ? 'Perfect score! Dashed circles confirm the <strong>correct positions</strong>.'
+        : 'All attempts used. Dashed circles show the <strong>correct positions</strong>.';
+      document.getElementById('reset-btn').style.display = 'none';
+      document.getElementById('submit-btn').style.display = 'none';
+      showScoreHistory();
+    } else {
+      document.getElementById('activity-instructions').innerHTML =
+        `Attempt ${attemptsUsed} submitted. <strong>Listen again</strong> and try to improve your placement.`;
+      document.getElementById('submit-btn').textContent = `Submit attempt ${currentAttempt} →`;
+      showTryAgain();
+    }
+
+    document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showToast(isPerfect ? 'Perfect score!' : isMaxed ? 'Final attempt submitted!' : `Attempt ${attemptsUsed} submitted!`, 'success');
+  }
+
+  // ── SHOW RESULTS (no correct positions unless final) ──
+  function showResults(instruments, showCorrect) {
+    const results = scoreAttempt(instruments, answerKey);
+    const list = document.getElementById('results-list');
+    list.innerHTML = '';
+
+    const overall = Math.round(results.reduce((s, r) => s + r.score, 0) / results.length);
+    document.getElementById('overall-score').textContent = `Score: ${overall}%`;
+    document.getElementById('overall-score').style.color =
+      overall >= 80 ? 'var(--green)' : overall >= 50 ? 'var(--amber)' : 'var(--red)';
+
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      if (r.type === 'stereo') {
+        const centerText = r.centerGrade === 'close' ? 'Close' : r.centerGrade === 'near' ? 'Near' : 'Off';
+        const centerColor = r.centerGrade === 'close' ? 'var(--green)' : r.centerGrade === 'near' ? 'var(--amber)' : 'var(--red)';
+        const widthText = r.widthGrade === 'good' ? 'Good width' : r.widthGrade === 'narrow' ? 'Too narrow' : 'Too wide';
+        const widthColor = r.widthGrade === 'good' ? 'var(--green)' : 'var(--amber)';
+        row.innerHTML = `
+          <div class="result-dot" style="background:${r.color}"></div>
+          <div class="result-name" style="flex:1;">${esc(r.label)} <span style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;">stereo</span></div>
+          <div style="display:flex;gap:6px;">
+            <span class="result-score" style="color:${centerColor}">Center: ${centerText}</span>
+            <span style="color:var(--text3)">·</span>
+            <span class="result-score" style="color:${widthColor}">${widthText}</span>
+          </div>
+        `;
+      } else {
+        const barPct = r.grade === 'close' ? 90 : r.grade === 'near' ? 55 : 20;
+        const barColor = r.grade === 'close' ? 'var(--green)' : r.grade === 'near' ? 'var(--amber)' : 'var(--red)';
+        const scoreText = r.grade === 'close' ? 'Close' : r.grade === 'near' ? 'Near' : 'Off';
+        row.innerHTML = `
+          <div class="result-dot" style="background:${r.color}"></div>
+          <div class="result-name">${esc(r.label)}</div>
+          <div class="result-bar-wrap"><div class="result-bar" style="width:${barPct}%;background:${barColor}"></div></div>
+          <div class="result-score score-${r.grade}">${scoreText}</div>
+        `;
+      }
+      list.appendChild(row);
+    });
+
+    // Update legend — only show correct position key if revealing
+    const legendCorrect = document.getElementById('legend-correct');
+    if (legendCorrect) legendCorrect.style.display = showCorrect ? 'flex' : 'none';
+
+    document.getElementById('results-panel').classList.remove('hidden');
+  }
+
+  // ── SCORE HISTORY ──
+  function showScoreHistory() {
+    const wrap = document.getElementById('try-again-wrap');
+    const msg = document.getElementById('try-again-msg');
+    const btn = document.getElementById('try-again-btn');
+    btn.style.display = 'none';
+
+    const scores = allAttempts.map((a, i) => `Attempt ${i + 1}: ${a.overall_score}%`).join(' → ');
+    msg.innerHTML = `<strong>Score progression:</strong> ${scores}`;
+    wrap.style.display = 'block';
+  }
+
+  // ── TRY AGAIN PROMPT ──
+  function showTryAgain() {
+    const wrap = document.getElementById('try-again-wrap');
+    const msg = document.getElementById('try-again-msg');
+    const btn = document.getElementById('try-again-btn');
+    const remaining = MAX_ATTEMPTS - attemptsUsed;
+
+    const scores = allAttempts.map((a, i) => `Attempt ${i + 1}: ${a.overall_score}%`).join(' → ');
+    msg.innerHTML = `${scores}<br><span style="color:var(--text3);">${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.</span>`;
+
+    btn.style.display = 'inline-flex';
+    btn.textContent = `Try again →`;
+    btn.onclick = () => {
+      const lastPositions = allAttempts[allAttempts.length - 1].student_positions;
+      let unlockedIdx = 0;
+      const unlockedCount = studentInstruments.filter((_, i) => !lockedInstruments[i]).length;
+      studentInstruments = studentInstruments.map((inst, idx) => {
+        if (lockedInstruments[idx]) {
+          return {
+            ...inst,
+            angle: lastPositions[idx]?.angle ?? inst.angle,
+            radius: lastPositions[idx]?.radius ?? inst.radius,
+          };
+        }
+        const pos = 20 + (unlockedIdx++ / Math.max(unlockedCount - 1, 1)) * 140;
+        return { ...inst, angle: pos, radius: MAP_RADII[0] };
+      });
+      const svgEl = document.getElementById('map-svg');
+      buildMapBase(svgEl);
+      renderDots(svgEl, studentInstruments, null, null, lockedInstruments);
+      document.getElementById('results-panel').classList.add('hidden');
+      const lockedCount = Object.keys(lockedInstruments).length;
+      document.getElementById('activity-instructions').innerHTML =
+        '<strong>Attempt ' + currentAttempt + ' of ' + MAX_ATTEMPTS + '.</strong> ' +
+        (lockedCount > 0 ? lockedCount + ' instrument' + (lockedCount > 1 ? 's' : '') + ' locked in. Place the remaining ones.' : 'Listen again and place the instruments.');
+    };
+
+    wrap.style.display = 'block';
+  }
+
+  function backToSongs() {
+    teardownYTPlayer();
+    currentSong = null;
+    allAttempts = [];
+    showView('view-songs');
+    getUser().then(u => loadSongs(u));
+  }
+
+  function showView(id) {
+    document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  // ── YOUTUBE PLAYER ──
+  let ytLooping = false;
+  let ytVideoId = null;
+  let ytExpanded = false;
+
+  function extractYTId(url) {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function setupYTPlayer(url, title) {
+    const wrap = document.getElementById('yt-wrap');
+    const inner = document.getElementById('yt-player-inner');
+    const bar = document.getElementById('yt-bar-label');
+    ytVideoId = extractYTId(url);
+    if (!ytVideoId) { wrap.style.display = 'none'; return; }
+    bar.textContent = title || 'Now playing';
+    document.getElementById('yt-loop').checked = false;
+    ytLooping = false;
+    ytExpanded = false;
+    document.getElementById('yt-toggle-icon').textContent = '▾ Show';
+    document.getElementById('yt-player-wrap').style.height = '0';
+    inner.innerHTML = buildYTIframe(ytVideoId, false);
+    wrap.style.display = 'block';
+  }
+
+  function buildYTIframe(id, loop) {
+    const loopParams = loop ? `&loop=1&playlist=${id}` : '';
+    return `<iframe id="yt-iframe" width="100%" height="195"
+      src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=0${loopParams}"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen style="display:block;"></iframe>`;
+  }
+
+  function toggleYT() {
+    ytExpanded = !ytExpanded;
+    document.getElementById('yt-player-wrap').style.height = ytExpanded ? '203px' : '0';
+    document.getElementById('yt-toggle-icon').textContent = ytExpanded ? '▴ Hide' : '▾ Show';
+  }
+
+  function setLoop(enabled) {
+    ytLooping = enabled;
+    if (!ytVideoId) return;
+    document.getElementById('yt-player-inner').innerHTML = buildYTIframe(ytVideoId, enabled);
+    if (ytExpanded) document.getElementById('yt-player-wrap').style.height = '203px';
+  }
+
+  function teardownYTPlayer() {
+    const inner = document.getElementById('yt-player-inner');
+    if (inner) inner.innerHTML = '';
+    const wrap = document.getElementById('yt-wrap');
+    if (wrap) wrap.style.display = 'none';
+    ytVideoId = null; ytExpanded = false;
+  }
+
+  // ── TIMELINE ACTIVITY ──
+  async function openTimelineSong(song, user) {
+    tlCurrentSong = song;
+    tlAnswerKey = song.timeline_key || [];
+    tlSectionTypes = song.section_types || DEFAULT_SECTION_TYPES;
+    injectTimelineStyles();
+
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('*')
+      .eq('song_id', song.id)
+      .eq('student_id', user.id)
+      .order('attempt_number', { ascending: true });
+
+    tlAllAttempts = submissions || [];
+    tlAttemptsUsed = tlAllAttempts.length;
+    const bestScore = tlAllAttempts.length > 0 ? Math.max(...tlAllAttempts.map(a => a.overall_score)) : 0;
+    const isMaxed = tlAttemptsUsed >= MAX_ATTEMPTS || bestScore === 100;
+
+    tlLockedSlots = {};
+    if (tlAttemptsUsed > 0 && !isMaxed) {
+      const lastResults = tlAllAttempts[tlAllAttempts.length - 1].results || [];
+      lastResults.forEach((r, idx) => {
+        if (r.grade === 'correct') tlLockedSlots[idx] = 'full';
+      });
+    }
+
+    if (isMaxed && tlAllAttempts.length > 0) {
+      tlSlots = tlAllAttempts[tlAllAttempts.length - 1].student_positions || tlAnswerKey.map(() => null);
+    } else if (tlAttemptsUsed > 0) {
+      const last = tlAllAttempts[tlAllAttempts.length - 1];
+      tlSlots = (last.student_positions || tlAnswerKey.map(() => null)).map((s, idx) =>
+        tlLockedSlots[idx] ? s : null
+      );
+    } else {
+      tlSlots = tlAnswerKey.map(() => null);
+    }
+
+    document.getElementById('tl-activity-title').textContent = song.title;
+    document.getElementById('tl-activity-artist').textContent = song.artist || '';
+
+    const counter = document.getElementById('tl-attempt-counter');
+    const label = document.getElementById('tl-attempt-label');
+    const pips = document.getElementById('tl-attempt-pips');
+    counter.style.display = 'flex';
+    label.textContent = isMaxed ? 'All attempts used' : 'Attempt ' + (tlAttemptsUsed + 1) + ' of ' + MAX_ATTEMPTS;
+    pips.innerHTML = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'attempt-pip' + (i < tlAttemptsUsed ? ' used' : '');
+      pips.appendChild(pip);
+    }
+
+    tlSetupYT(song.audio_url, song.title);
+    renderPalette('student-palette', tlSectionTypes, null);
+    renderTimeline('student-timeline', tlSlots, isMaxed ? tlAnswerKey : null, tlLockedSlots, !isMaxed, s => { tlSlots = s; });
+
+    document.getElementById('tl-results-panel').classList.add('hidden');
+    document.getElementById('tl-try-again-wrap').style.display = 'none';
+
+    if (isMaxed) {
+      document.getElementById('tl-instructions').innerHTML = 'All attempts used. Correct answers are shown on the timeline.';
+      document.getElementById('tl-reset-btn').style.display = 'none';
+      document.getElementById('tl-submit-btn').style.display = 'none';
+      tlShowResults(tlAllAttempts[tlAllAttempts.length - 1].results, true);
+      tlShowScoreHistory();
+    } else if (tlAttemptsUsed > 0) {
+      document.getElementById('tl-instructions').innerHTML = 'Attempt ' + tlAttemptsUsed + ' done. Locked slots are correct — adjust the rest and submit again.';
+      document.getElementById('tl-submit-btn').textContent = 'Submit attempt ' + (tlAttemptsUsed + 1) + ' →';
+      tlShowResults(tlAllAttempts[tlAllAttempts.length - 1].results, false);
+      tlShowTryAgain();
+    } else {
+      document.getElementById('tl-instructions').innerHTML = '<strong>Listen to the song.</strong> Drag section labels from the palette onto the timeline slots in the correct order.';
+      document.getElementById('tl-submit-btn').textContent = 'Submit →';
+    }
+
+    showView('view-timeline');
+  }
+
+  async function tlSubmit() {
+    const user = await getUser();
+    if (!user || !tlCurrentSong) return;
+
+    const results = scoreTimeline(tlSlots, tlAnswerKey);
+    const overall = Math.round(results.filter(r => r.grade === 'correct').length / results.length * 100);
+    const attemptNum = tlAttemptsUsed + 1;
+
+    const { error } = await db.from('submissions').insert({
+      student_id: user.id,
+      song_id: tlCurrentSong.id,
+      student_positions: tlSlots,
+      results: results,
+      overall_score: overall,
+      attempt_number: attemptNum,
+      attempts_used: attemptNum,
+      submitted_at: new Date().toISOString(),
+    });
+
+    if (error) { showToast('Error saving', 'error'); return; }
+
+    tlAttemptsUsed = attemptNum;
+    tlAllAttempts.push({ student_positions: [...tlSlots], results, overall_score: overall, attempt_number: attemptNum });
+
+    const isPerfect = overall === 100;
+    const isMaxed = tlAttemptsUsed >= MAX_ATTEMPTS || isPerfect;
+
+    if (!isMaxed) {
+      results.forEach((r, idx) => {
+        if (r.grade === 'correct') tlLockedSlots[idx] = 'full';
+      });
+    }
+
+    const label = document.getElementById('tl-attempt-label');
+    const pips = document.getElementById('tl-attempt-pips');
+    label.textContent = isMaxed ? 'All attempts used' : 'Attempt ' + (tlAttemptsUsed + 1) + ' of ' + MAX_ATTEMPTS;
+    pips.innerHTML = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'attempt-pip' + (i < tlAttemptsUsed ? ' used' : '');
+      pips.appendChild(pip);
+    }
+
+    renderTimeline('student-timeline', tlSlots, isMaxed ? tlAnswerKey : null, tlLockedSlots, !isMaxed, s => { tlSlots = s; });
+    tlShowResults(results, isMaxed);
+
+    if (isMaxed) {
+      document.getElementById('tl-instructions').innerHTML = isPerfect
+        ? 'Perfect score! Correct answers confirmed.'
+        : 'All attempts used. Correct answers shown on the timeline.';
+      document.getElementById('tl-reset-btn').style.display = 'none';
+      document.getElementById('tl-submit-btn').style.display = 'none';
+      tlShowScoreHistory();
+    } else {
+      document.getElementById('tl-instructions').innerHTML = 'Attempt ' + tlAttemptsUsed + ' submitted. Locked slots are correct — keep going!';
+      document.getElementById('tl-submit-btn').textContent = 'Submit attempt ' + (tlAttemptsUsed + 1) + ' →';
+      tlShowTryAgain();
+    }
+
+    document.getElementById('tl-results-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showToast(isPerfect ? 'Perfect score!' : isMaxed ? 'Final attempt submitted!' : 'Attempt ' + tlAttemptsUsed + ' submitted!', 'success');
+  }
+
+  function tlShowResults(results, showAnswers) {
+    const list = document.getElementById('tl-results-list');
+    list.innerHTML = '';
+    const correct = results.filter(r => r.grade === 'correct').length;
+    const overall = Math.round(correct / results.length * 100);
+    document.getElementById('tl-overall-score').textContent = 'Score: ' + correct + '/' + results.length + ' (' + overall + '%)';
+    document.getElementById('tl-overall-score').style.color = overall >= 80 ? 'var(--green)' : overall >= 50 ? 'var(--amber)' : 'var(--red)';
+
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'timeline-result-row';
+      const studentColor = r.student ? getSectionColor(r.student) : 'var(--text3)';
+      const correctColor = getSectionColor(r.correct);
+      const gradeColor = r.grade === 'correct' ? 'var(--green)' : 'var(--red)';
+      const gradeText = r.grade === 'correct' ? '✓' : '✗';
+      row.innerHTML =
+        '<div class="result-slot-num">' + (r.idx + 1) + '</div>' +
+        '<div class="result-chip" style="background:' + studentColor + '22;border:1.5px solid ' + studentColor + ';color:' + studentColor + ';">' + (r.student || '—') + '</div>' +
+        (showAnswers && r.grade !== 'correct' ? '<div style="font-size:12px;color:var(--text3);">→</div><div class="result-chip" style="background:' + correctColor + '22;border:1.5px solid ' + correctColor + ';color:' + correctColor + ';opacity:0.7;">' + r.correct + '</div>' : '') +
+        '<div style="margin-left:auto;font-size:14px;color:' + gradeColor + ';font-weight:500;">' + gradeText + '</div>';
+      list.appendChild(row);
+    });
+
+    document.getElementById('tl-results-panel').classList.remove('hidden');
+  }
+
+  function tlShowScoreHistory() {
+    const wrap = document.getElementById('tl-try-again-wrap');
+    const msg = document.getElementById('tl-try-again-msg');
+    document.getElementById('tl-try-again-btn').style.display = 'none';
+    const scores = tlAllAttempts.map((a, i) => 'Attempt ' + (i+1) + ': ' + a.overall_score + '%').join(' → ');
+    msg.innerHTML = '<strong>Score progression:</strong> ' + scores;
+    wrap.style.display = 'block';
+  }
+
+  function tlShowTryAgain() {
+    const wrap = document.getElementById('tl-try-again-wrap');
+    const msg = document.getElementById('tl-try-again-msg');
+    const btn = document.getElementById('tl-try-again-btn');
+    const remaining = MAX_ATTEMPTS - tlAttemptsUsed;
+    const scores = tlAllAttempts.map((a, i) => 'Attempt ' + (i+1) + ': ' + a.overall_score + '%').join(' → ');
+    msg.innerHTML = scores + '<br><span style="color:var(--text3);">' + remaining + ' attempt' + (remaining !== 1 ? 's' : '') + ' remaining.</span>';
+    btn.style.display = 'inline-flex';
+    btn.textContent = 'Try again →';
+    btn.onclick = () => {
+      document.getElementById('tl-results-panel').classList.add('hidden');
+      renderPalette('student-palette', tlSectionTypes, null);
+      renderTimeline('student-timeline', tlSlots, null, tlLockedSlots, true, s => { tlSlots = s; });
+      const lockedCount = Object.keys(tlLockedSlots).length;
+      document.getElementById('tl-instructions').innerHTML = '<strong>Attempt ' + (tlAttemptsUsed + 1) + ' of ' + MAX_ATTEMPTS + '.</strong> ' +
+        (lockedCount > 0 ? lockedCount + ' slot' + (lockedCount > 1 ? 's' : '') + ' locked in. Place the remaining sections.' : 'Drag sections onto the timeline.');
+    };
+    wrap.style.display = 'block';
+  }
+
+  function tlSetupYT(url, title) {
+    const wrap = document.getElementById('tl-yt-wrap');
+    const inner = document.getElementById('tl-yt-player-inner');
+    tlYtVideoId = extractYTId(url);
+    if (!tlYtVideoId) { wrap.style.display = 'none'; return; }
+    document.getElementById('tl-yt-bar-label').textContent = title || 'Now playing';
+    document.getElementById('tl-yt-loop').checked = false;
+    tlYtExpanded = false;
+    document.getElementById('tl-yt-toggle-icon').textContent = '▾ Show';
+    document.getElementById('tl-yt-player-wrap').style.height = '0';
+    inner.innerHTML = buildYTIframe(tlYtVideoId, false);
+    wrap.style.display = 'block';
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

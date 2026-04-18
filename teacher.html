@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stereo Map — Teacher</title>
+  <link rel="icon" href="/stereomap/favicon.ico" sizes="any">
+  <link rel="icon" href="/stereomap/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/stereomap/apple-touch-icon.png">
+  <link rel="stylesheet" href="/stereomap/style.css">
+  <style>
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; }
+    .tab { font-size: 14px; font-weight: 500; padding: 8px 18px; border-radius: 9px; border: none; background: transparent; color: var(--text2); cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .tab.active { background: var(--surface2); color: var(--text); }
+    .song-mgmt-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+    .song-mgmt-info { flex: 1; min-width: 0; }
+    .song-mgmt-title { font-size: 15px; font-weight: 500; }
+    .song-mgmt-meta { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .published-badge { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+    .published-badge.yes { background: rgba(102,187,106,0.12); color: var(--green); border: 1px solid rgba(102,187,106,0.2); }
+    .published-badge.no  { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+
+<div class="page-wide">
+  <div class="page-title">Teacher Dashboard</div>
+  <div class="page-sub">Manage songs and track student progress.</div>
+
+  <div class="tab-bar">
+    <button class="tab active" id="tab-btn-songs">Songs</button>
+    <button class="tab" id="tab-btn-progress">Progress</button>
+  </div>
+
+  <!-- SONGS TAB -->
+  <div id="tab-songs">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="section-label" style="margin:0;">Your songs</div>
+      <button class="btn primary" id="add-song-btn">+ Add song</button>
+    </div>
+    <div id="songs-list">
+      <div class="empty"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS TAB -->
+  <div id="tab-progress" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+      <div class="section-label" style="margin:0;">Student submissions</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn sm" id="refresh-btn">Refresh</button>
+        <button class="btn sm" id="clear-song-btn">Clear by song</button>
+        <button class="btn sm danger" id="clear-all-btn">Clear all data</button>
+      </div>
+    </div>
+    <div id="progress-wrap">
+      <div class="empty"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR ALL MODAL -->
+<div class="modal-overlay" id="clear-all-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title" style="color:var(--red);">Clear all student data?</div>
+    <div class="modal-desc">This will permanently delete every student submission across all songs. Students will be able to start fresh. <strong>This cannot be undone.</strong></div>
+    <div style="background:var(--surface2); border:1px solid rgba(239,83,80,0.2); border-radius:10px; padding:12px 16px; margin-bottom:20px;">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:8px;">To confirm, type <strong style="color:var(--text);">DELETE</strong> below:</div>
+      <input class="input" id="clear-confirm-input" placeholder="DELETE" autocomplete="off">
+    </div>
+    <div style="font-size:13px; color:var(--red); min-height:18px; margin-bottom:4px;" id="clear-error"></div>
+    <div class="modal-footer">
+      <button class="btn" id="clear-all-cancel-btn">Cancel</button>
+      <button class="btn danger" id="clear-all-confirm-btn">Delete all submissions</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR BY SONG MODAL -->
+<div class="modal-overlay" id="clear-song-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title" style="color:var(--red);">Clear submissions by song</div>
+    <div class="modal-desc">Choose a song to clear all student submissions for. Students will be able to attempt it again from scratch.</div>
+    <div class="field">
+      <label>Select song</label>
+      <select class="input" id="clear-song-select"></select>
+    </div>
+    <div style="font-size:13px; color:var(--red); min-height:18px; margin-bottom:4px;" id="clear-song-error"></div>
+    <div class="modal-footer">
+      <button class="btn" id="clear-song-cancel-btn">Cancel</button>
+      <button class="btn danger" id="clear-song-confirm-btn">Clear submissions</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT SONG MODAL -->
+<div class="modal-overlay" id="song-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title" id="song-modal-title">Add song</div>
+    <div class="modal-desc">Fill in the song details, then build the answer key below.</div>
+
+    <div class="field">
+      <label>Activity type</label>
+      <div style="display:flex;gap:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 14px;">
+          <input type="radio" name="activity-type" id="type-stereo" value="stereo" checked style="accent-color:var(--accent);">
+          Stereo Map
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 14px;">
+          <input type="radio" name="activity-type" id="type-structure" value="structure" style="accent-color:var(--accent);">
+          Song Structure
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Song title</label>
+      <input class="input" id="f-title" placeholder="e.g. Jolene">
+    </div>
+    <div class="field">
+      <label>Artist</label>
+      <input class="input" id="f-artist" placeholder="e.g. Dolly Parton">
+    </div>
+    <div class="field">
+      <label>YouTube URL <span style="color:var(--text3)">(paste any YouTube link — full URL or youtu.be short link)</span></label>
+      <input class="input" id="f-audio" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
+      <div id="yt-preview" style="margin-top:10px; display:none;">
+        <div style="font-size:12px; color:var(--green); margin-bottom:6px;">&#10003; YouTube video detected</div>
+        <div id="yt-preview-frame" style="border-radius:8px; overflow:hidden; height:80px; background:#000;"></div>
+      </div>
+    </div>
+
+    <!-- STEREO MAP SECTION -->
+    <div id="stereo-section">
+    <div class="field">
+      <label>Instruments</label>
+      <div class="instr-list" id="modal-instr-list"></div>
+      <div class="add-row" style="flex-wrap:wrap; gap:8px;">
+        <input class="input" id="new-instr-input" placeholder="Instrument name..." style="flex:1; min-width:140px;">
+        <select class="input" id="new-instr-type" style="width:110px; flex-shrink:0;">
+          <option value="mono">Mono</option>
+          <option value="stereo">Stereo</option>
+        </select>
+        <button class="btn" id="add-instr-btn">Add</button>
+      </div>
+      <div id="stereo-width-fields" style="display:none; margin-top:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px;">
+        <div style="font-size:12px; color:var(--accent); margin-bottom:8px; font-family:'DM Mono',monospace;">Stereo width range (degrees)</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <div style="flex:1;">
+            <label style="font-size:11px; color:var(--text2); display:block; margin-bottom:4px;">Min width</label>
+            <input class="input" id="new-instr-width-min" type="number" min="5" max="160" value="20" placeholder="20">
+          </div>
+          <div style="color:var(--text3); padding-top:18px;">–</div>
+          <div style="flex:1;">
+            <label style="font-size:11px; color:var(--text2); display:block; margin-bottom:4px;">Max width</label>
+            <input class="input" id="new-instr-width-max" type="number" min="5" max="160" value="60" placeholder="60">
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text3); margin-top:8px;">Students' arc width must fall within this range to score full points.</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Drag instruments to correct positions (answer key)</label>
+      <div class="map-wrap">
+        <svg id="map-svg" viewBox="0 0 680 490"></svg>
+      </div>
+      <div class="readout" id="map-readout">Drag instruments to set the answer key</div>
+    </div>
+
+    </div>
+
+    <!-- SONG STRUCTURE SECTION -->
+    <div id="structure-section" style="display:none;">
+      <div class="field">
+        <label>Section types available to students</label>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; padding:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:4px;" id="section-type-toggles"></div>
+        <div style="font-size:11px; color:var(--text3); margin-top:4px;">Uncheck types that don't appear in this song.</div>
+      </div>
+      <div class="field">
+        <label>Answer key — drag sections from palette to build the correct sequence</label>
+        <div class="palette-container" id="teacher-palette"></div>
+        <div class="timeline-container" id="teacher-timeline"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <input type="checkbox" id="f-published" style="width:16px;height:16px;accent-color:var(--accent);">
+      <label for="f-published" style="font-size:14px; color:var(--text); cursor:pointer;">Published (visible to students)</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" id="cancel-song-btn">Cancel</button>
+      <button class="btn danger hidden" id="delete-song-btn">Delete</button>
+      <button class="btn primary" id="save-song-btn">Save song</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/stereomap/app.js"></script>
+<script src="/stereomap/map.js"></script>
+<script src="/stereomap/timeline.js"></script>
+<script>
+  let teacherInstruments = [];
+  let editingSongId = null;
+  let teacherTimelineSlots = [null, null, null, null, null, null, null, null];
+  let activeSectionTypes = [...DEFAULT_SECTION_TYPES];
+  let currentActivityType = 'stereo';
+
+  // ── INIT ──
+  (async () => {
+    let user = null;
+    const { data: { session } } = await db.auth.getSession();
+    user = session?.user ?? null;
+    if (!user) {
+      user = await new Promise(resolve => {
+        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
+          if (session?.user) { subscription.unsubscribe(); resolve(session.user); }
+        });
+        setTimeout(() => { subscription.unsubscribe(); resolve(null); }, 5000);
+      });
+    }
+    if (!user) { window.location.href = '/stereomap/index.html'; return; }
+    const teacher = await isTeacher(user);
+    if (!teacher) { window.location.href = '/stereomap/student.html'; return; }
+    renderNav('teacher');
+    loadSongs();
+    attachListeners();
+  })();
+
+  function attachListeners() {
+    // Tabs
+    document.getElementById('tab-btn-songs').addEventListener('click', () => switchTab('songs'));
+    document.getElementById('tab-btn-progress').addEventListener('click', () => switchTab('progress'));
+
+    // Songs tab
+    document.getElementById('add-song-btn').addEventListener('click', openNewSong);
+    document.getElementById('refresh-btn').addEventListener('click', loadProgress);
+    document.getElementById('clear-all-btn').addEventListener('click', openClearAll);
+    document.getElementById('clear-all-cancel-btn').addEventListener('click', () => closeModal('clear-all-modal'));
+    document.getElementById('clear-all-confirm-btn').addEventListener('click', confirmClearAll);
+    document.getElementById('clear-song-btn').addEventListener('click', openClearBySong);
+    document.getElementById('clear-song-cancel-btn').addEventListener('click', () => closeModal('clear-song-modal'));
+    document.getElementById('clear-song-confirm-btn').addEventListener('click', confirmClearBySong);
+    document.getElementById('clear-confirm-input').addEventListener('input', () => {
+      document.getElementById('clear-error').textContent = '';
+    });
+
+    // Modal buttons
+    document.getElementById('cancel-song-btn').addEventListener('click', closeSongModal);
+    document.getElementById('save-song-btn').addEventListener('click', saveSong);
+    document.getElementById('delete-song-btn').addEventListener('click', deleteSong);
+
+    // Instrument add
+    document.getElementById('add-instr-btn').addEventListener('click', addInstrument);
+    document.getElementById('new-instr-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addInstrument();
+    });
+    document.querySelectorAll('input[name="activity-type"]').forEach(radio => {
+      radio.addEventListener('change', e => {
+        currentActivityType = e.target.value;
+        switchActivityType(currentActivityType);
+      });
+    });
+    document.getElementById('new-instr-type').addEventListener('change', e => {
+      document.getElementById('stereo-width-fields').style.display =
+        e.target.value === 'stereo' ? 'block' : 'none';
+    });
+
+    // YouTube preview
+    document.getElementById('f-audio').addEventListener('input', e => previewYT(e.target.value));
+  }
+
+  // ── TABS ──
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('[id^="tab-"]').forEach(t => {
+      if (!t.id.startsWith('tab-btn')) t.classList.add('hidden');
+    });
+    document.getElementById('tab-btn-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    if (tab === 'progress') loadProgress();
+  }
+
+  // ── YOUTUBE HELPERS ──
+  function extractYTId(url) {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function previewYT(url) {
+    const id = extractYTId(url);
+    const wrap = document.getElementById('yt-preview');
+    const frame = document.getElementById('yt-preview-frame');
+    if (id) {
+      frame.innerHTML = `<iframe width="100%" height="80" src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1" frameborder="0" allowfullscreen style="display:block;"></iframe>`;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+      frame.innerHTML = '';
+    }
+  }
+
+  // ── LOAD SONGS ──
+  async function loadSongs() {
+    const { data: songs } = await db.from('songs').select('*').order('created_at', { ascending: false });
+    const list = document.getElementById('songs-list');
+
+    if (!songs || songs.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🎵</div><div class="empty-text">No songs yet. Add your first one.</div></div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    songs.forEach(song => {
+      const instrCount = (song.instruments || []).length;
+      const card = document.createElement('div');
+      card.className = 'song-mgmt-card';
+      card.innerHTML = `
+        <div class="song-mgmt-info">
+          <div class="song-mgmt-title">${esc(song.title)}</div>
+          <div class="song-mgmt-meta">${esc(song.artist || '—')} · ${instrCount} instrument${instrCount !== 1 ? 's' : ''}</div>
+        </div>
+        <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
+        <button class="btn sm" data-song-id="${song.id}">Edit</button>
+      `;
+      card.querySelector('button').addEventListener('click', () => editSong(song.id));
+      list.appendChild(card);
+    });
+  }
+
+  // ── ACTIVITY TYPE SWITCH ──
+  function switchActivityType(type) {
+    document.getElementById('stereo-section').style.display = type === 'stereo' ? 'block' : 'none';
+    document.getElementById('structure-section').style.display = type === 'structure' ? 'block' : 'none';
+    if (type === 'structure') {
+      injectTimelineStyles();
+      renderSectionTypeToggles();
+      renderPalette('teacher-palette', activeSectionTypes, null);
+      renderTimeline('teacher-timeline', teacherTimelineSlots, null, {}, true, slots => {
+        teacherTimelineSlots = slots;
+      });
+    }
+  }
+
+  function renderSectionTypeToggles() {
+    const container = document.getElementById('section-type-toggles');
+    container.innerHTML = '';
+    DEFAULT_SECTION_TYPES.forEach(type => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = activeSectionTypes.includes(type);
+      cb.style.accentColor = 'var(--accent)';
+      cb.addEventListener('change', () => {
+        if (cb.checked) { if (!activeSectionTypes.includes(type)) activeSectionTypes.push(type); }
+        else { activeSectionTypes = activeSectionTypes.filter(t => t !== type); }
+        renderPalette('teacher-palette', activeSectionTypes, null);
+      });
+      const colorDot = document.createElement('span');
+      colorDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:' + getSectionColor(type) + ';flex-shrink:0;';
+      label.appendChild(cb);
+      label.appendChild(colorDot);
+      label.appendChild(document.createTextNode(' ' + type));
+      container.appendChild(label);
+    });
+  }
+
+  // ── OPEN NEW SONG ──
+  function openNewSong() {
+    editingSongId = null;
+    teacherInstruments = [];
+    teacherTimelineSlots = [null, null, null, null, null, null, null, null];
+    activeSectionTypes = [...DEFAULT_SECTION_TYPES];
+    currentActivityType = 'stereo';
+    document.getElementById('type-stereo').checked = true;
+    document.getElementById('song-modal-title').textContent = 'Add song';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-artist').value = '';
+    document.getElementById('f-audio').value = '';
+    document.getElementById('f-published').checked = false;
+    document.getElementById('yt-preview').style.display = 'none';
+    document.getElementById('yt-preview-frame').innerHTML = '';
+    document.getElementById('delete-song-btn').classList.add('hidden');
+    switchActivityType('stereo');
+    renderInstrList();
+    openModal('song-modal');
+    requestAnimationFrame(() => rebuildMap());
+  }
+
+  // ── EDIT SONG ──
+  async function editSong(id) {
+    const { data: song } = await db.from('songs').select('*').eq('id', id).single();
+    if (!song) { showToast('Could not load song', 'error'); return; }
+    editingSongId = id;
+    currentActivityType = song.activity_type || 'stereo';
+    teacherInstruments = (song.instruments || []).map(i => ({ ...i }));
+    teacherTimelineSlots = song.timeline_key || [null,null,null,null,null,null,null,null];
+    activeSectionTypes = song.section_types || [...DEFAULT_SECTION_TYPES];
+    document.getElementById(currentActivityType === 'stereo' ? 'type-stereo' : 'type-structure').checked = true;
+    document.getElementById('song-modal-title').textContent = 'Edit song';
+    document.getElementById('f-title').value = song.title || '';
+    document.getElementById('f-artist').value = song.artist || '';
+    document.getElementById('f-audio').value = song.audio_url || '';
+    document.getElementById('f-published').checked = !!song.published;
+    document.getElementById('delete-song-btn').classList.remove('hidden');
+    previewYT(song.audio_url || '');
+    switchActivityType(currentActivityType);
+    renderInstrList();
+    openModal('song-modal');
+    requestAnimationFrame(() => { if (currentActivityType === 'stereo') rebuildMap(); });
+  }
+
+  function closeSongModal() {
+    closeModal('song-modal');
+  }
+
+  // ── INSTRUMENTS ──
+  function renderInstrList() {
+    const list = document.getElementById('modal-instr-list');
+    list.innerHTML = '';
+    teacherInstruments.forEach((inst, idx) => {
+      const row = document.createElement('div');
+      row.className = 'instr-row';
+      const cl = mapClockLabel(inst.angle);
+      const side = mapSideLabel(inst.angle);
+      const typeBadge = inst.type === 'stereo'
+        ? `<span style="font-family:'DM Mono',monospace;font-size:10px;background:rgba(79,195,247,0.12);color:var(--accent);border:1px solid rgba(79,195,247,0.3);border-radius:4px;padding:1px 5px;">stereo ${inst.widthMin}°–${inst.widthMax}°</span>`
+        : '';
+      row.innerHTML = `
+        <div class="instr-dot" style="background:${inst.color}"></div>
+        <div class="instr-name">${esc(inst.label)} ${typeBadge}</div>
+        <div class="instr-pos">${cl} · ${side}</div>
+        <button class="instr-remove" title="Remove">×</button>
+      `;
+      row.querySelector('.instr-remove').addEventListener('click', () => removeInstrument(idx));
+      list.appendChild(row);
+    });
+  }
+
+  function addInstrument() {
+    const input = document.getElementById('new-instr-input');
+    const name = input.value.trim();
+    if (!name) return;
+    const type = document.getElementById('new-instr-type').value;
+    const widthMin = parseInt(document.getElementById('new-instr-width-min').value) || 20;
+    const widthMax = parseInt(document.getElementById('new-instr-width-max').value) || 60;
+    const color = COLOR_LIST[teacherInstruments.length % COLOR_LIST.length];
+    const inst = {
+      id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      label: name,
+      color,
+      type,
+      r: 8,
+      angle: 50 + Math.random() * 80,
+      radius: MAP_RADII[Math.floor(Math.random() * MAP_RADII.length)],
+    };
+    if (type === 'stereo') {
+      inst.widthMin = widthMin;
+      inst.widthMax = widthMax;
+      inst.width = Math.round((widthMin + widthMax) / 2);
+    }
+    teacherInstruments.push(inst);
+    input.value = '';
+    input.focus();
+    document.getElementById('new-instr-type').value = 'mono';
+    document.getElementById('stereo-width-fields').style.display = 'none';
+    renderInstrList();
+    rebuildMap();
+  }
+
+  function removeInstrument(idx) {
+    teacherInstruments.splice(idx, 1);
+    renderInstrList();
+    rebuildMap();
+  }
+
+  function rebuildMap() {
+    const svgEl = document.getElementById('map-svg');
+    buildMapBase(svgEl);
+    renderDots(svgEl, teacherInstruments, null, null);
+    const g = document.getElementById('map-svg-dots');
+    if (!g) return;
+    g.querySelectorAll('g[data-idx]').forEach(group => {
+      group.addEventListener('mousedown', e => {
+        mapStartDrag(e, svgEl, teacherInstruments, () => renderInstrList());
+      });
+      group.addEventListener('touchstart', e => {
+        mapStartDrag(e, svgEl, teacherInstruments, () => renderInstrList());
+      }, { passive: false });
+    });
+  }
+
+  // ── SAVE SONG ──
+  async function saveSong() {
+    const title = document.getElementById('f-title').value.trim();
+    const artist = document.getElementById('f-artist').value.trim();
+    const audioUrl = document.getElementById('f-audio').value.trim();
+    const published = document.getElementById('f-published').checked;
+
+    if (!title) { showToast('Please enter a song title', 'error'); return; }
+    if (currentActivityType === 'stereo' && teacherInstruments.length === 0) {
+      showToast('Please add at least one instrument', 'error'); return;
+    }
+    if (currentActivityType === 'structure' && teacherTimelineSlots.filter(s => s).length === 0) {
+      showToast('Please add at least one section to the timeline', 'error'); return;
+    }
+
+    const payload = {
+      title, artist, audio_url: audioUrl, published,
+      activity_type: currentActivityType,
+      instruments: currentActivityType === 'stereo' ? teacherInstruments.map(i => ({ ...i })) : [],
+      timeline_key: currentActivityType === 'structure' ? teacherTimelineSlots : [],
+      section_types: currentActivityType === 'structure' ? activeSectionTypes : DEFAULT_SECTION_TYPES,
+      updated_at: new Date().toISOString(),
+    };
+
+    let error;
+    if (editingSongId) {
+      ({ error } = await db.from('songs').update(payload).eq('id', editingSongId));
+    } else {
+      payload.created_at = new Date().toISOString();
+      ({ error } = await db.from('songs').insert(payload));
+    }
+
+    if (error) { showToast('Error saving song: ' + error.message, 'error'); return; }
+    showToast(editingSongId ? 'Song updated!' : 'Song added!', 'success');
+    closeSongModal();
+    loadSongs();
+  }
+
+  // ── DELETE SONG ──
+  async function deleteSong() {
+    if (!editingSongId) return;
+    if (!confirm('Delete this song? Student submissions will also be deleted.')) return;
+    const { error } = await db.from('songs').delete().eq('id', editingSongId);
+    if (error) { showToast('Error deleting: ' + error.message, 'error'); return; }
+    showToast('Song deleted', '');
+    closeSongModal();
+    loadSongs();
+  }
+
+  // ── PROGRESS TAB ──
+  async function loadProgress() {
+    const wrap = document.getElementById('progress-wrap');
+    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+
+    const [{ data: songs }, { data: submissions }] = await Promise.all([
+      db.from('songs').select('id, title').eq('published', true).order('created_at'),
+      db.from('submissions').select('student_id, song_id, overall_score, attempt_number, profiles(name, email)').order('attempt_number', { ascending: true }).limit(1000)
+    ]);
+
+    if (!songs || songs.length === 0) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-text">No published songs yet.</div></div>';
+      return;
+    }
+    if (!submissions || submissions.length === 0) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-text">No student submissions yet.</div></div>';
+      return;
+    }
+
+    // Group by student, then by song — track all attempts
+    const studentMap = {};
+    submissions.forEach(s => {
+      const sid = s.student_id;
+      if (!studentMap[sid]) {
+        studentMap[sid] = {
+          name: s.profiles?.name || s.profiles?.email || sid,
+          songs: {}
+        };
+      }
+      if (!studentMap[sid].songs[s.song_id]) {
+        studentMap[sid].songs[s.song_id] = [];
+      }
+      studentMap[sid].songs[s.song_id].push(s);
+    });
+
+    // Sort attempts within each song
+    Object.values(studentMap).forEach(student => {
+      Object.values(student.songs).forEach(attempts => {
+        attempts.sort((a, b) => a.attempt_number - b.attempt_number);
+      });
+    });
+
+    const students = Object.values(studentMap).sort((a, b) => a.name.localeCompare(b.name));
+
+    let html = `
+      <div class="progress-table-wrap">
+        <table class="progress-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              ${songs.map(s => `<th>${esc(s.title)}</th>`).join('')}
+              <th>Avg best</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    students.forEach(student => {
+      const bestScores = songs.map(s => {
+        const attempts = student.songs[s.id];
+        if (!attempts || attempts.length === 0) return null;
+        return Math.max(...attempts.map(a => a.overall_score));
+      });
+
+      const submitted = bestScores.filter(s => s !== null);
+      const avg = submitted.length > 0
+        ? Math.round(submitted.reduce((a, b) => a + b, 0) / submitted.length)
+        : null;
+
+      html += `<tr><td style="font-weight:500">${esc(student.name)}</td>`;
+      songs.forEach((song, i) => {
+        const attempts = student.songs[song.id];
+        if (!attempts || attempts.length === 0) {
+          html += `<td><span class="score-pill none">—</span></td>`;
+        } else {
+          html += `<td>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;">
+              ${attempts.map(a => {
+                const c = a.overall_score >= 80 ? 'var(--green)' : a.overall_score >= 50 ? 'var(--amber)' : 'var(--red)';
+                return `<span style="color:${c}">${a.overall_score}%</span>`;
+              }).join('<span style="color:var(--text3)"> → </span>')}
+            </span>
+          </td>`;
+        }
+      });
+      const avgCls = avg !== null ? (avg >= 80 ? 'close' : avg >= 50 ? 'near' : 'far') : 'none';
+      html += `<td><span class="score-pill ${avgCls}">${avg !== null ? avg + '%' : '—'}</span></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">Score progression shown per song. Colors indicate performance level.</div>';
+    wrap.innerHTML = html;
+  }
+
+  // ── CLEAR DATA ──
+  function openClearAll() {
+    document.getElementById('clear-confirm-input').value = '';
+    document.getElementById('clear-error').textContent = '';
+    openModal('clear-all-modal');
+  }
+
+  async function confirmClearAll() {
+    const val = document.getElementById('clear-confirm-input').value.trim();
+    if (val !== 'DELETE') {
+      document.getElementById('clear-error').textContent = 'Please type DELETE to confirm.';
+      return;
+    }
+    const { error } = await db.from('submissions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) { showToast('Error clearing data: ' + error.message, 'error'); return; }
+    closeModal('clear-all-modal');
+    showToast('All student submissions cleared.', 'success');
+    loadProgress();
+  }
+
+  async function openClearBySong() {
+    const { data: songs } = await db.from('songs').select('id, title').order('created_at');
+    const select = document.getElementById('clear-song-select');
+    select.innerHTML = '';
+    if (!songs || songs.length === 0) {
+      showToast('No songs found.', 'error'); return;
+    }
+    songs.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.title;
+      select.appendChild(opt);
+    });
+    document.getElementById('clear-song-error').textContent = '';
+    openModal('clear-song-modal');
+  }
+
+  async function confirmClearBySong() {
+    const songId = document.getElementById('clear-song-select').value;
+    const songTitle = document.getElementById('clear-song-select').selectedOptions[0]?.text || 'this song';
+    if (!songId) { document.getElementById('clear-song-error').textContent = 'Please select a song.'; return; }
+    if (!confirm(`Clear all submissions for "${songTitle}"? This cannot be undone.`)) return;
+    const { error } = await db.from('submissions').delete().eq('song_id', songId);
+    if (error) { showToast('Error clearing data: ' + error.message, 'error'); return; }
+    closeModal('clear-song-modal');
+    showToast(`Submissions cleared for "${songTitle}".`, 'success');
+    loadProgress();
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
