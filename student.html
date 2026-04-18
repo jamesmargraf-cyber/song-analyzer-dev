@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stereo Map — Student</title>
-  <link rel="icon" href="/stereomap/favicon.ico" sizes="any">
-  <link rel="icon" href="/stereomap/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/stereomap/apple-touch-icon.png">
-  <link rel="stylesheet" href="/stereomap/style.css">
+  <title>Song Analyzer — Student</title>
+  <link rel="icon" href="/song-analyzer-dev/favicon.ico" sizes="any">
+  <link rel="icon" href="/song-analyzer-dev/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/song-analyzer-dev/apple-touch-icon.png">
+  <link rel="stylesheet" href="/song-analyzer-dev/style.css">
   <style>
     .attempt-pip {
       width: 10px; height: 10px; border-radius: 50%;
@@ -162,9 +162,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/stereomap/app.js"></script>
-<script src="/stereomap/map.js"></script>
-<script src="/stereomap/timeline.js"></script>
+<script src="/song-analyzer-dev/app.js"></script>
+<script src="/song-analyzer-dev/map.js"></script>
+<script src="/song-analyzer-dev/timeline.js"></script>
 <script>
   const MAX_ATTEMPTS = 3;
 
@@ -198,11 +198,11 @@
         setTimeout(() => { subscription.unsubscribe(); resolve(null); }, 5000);
       });
     }
-    if (!user) { window.location.href = '/stereomap/index.html'; return; }
+    if (!user) { window.location.href = '/song-analyzer-dev/index.html'; return; }
     await ensureProfile(user);
     const teacher = await isTeacher(user);
     const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
-    if (teacher && !isPreview) { window.location.href = '/stereomap/teacher.html'; return; }
+    if (teacher && !isPreview) { window.location.href = '/song-analyzer-dev/teacher.html'; return; }
     renderNav('student');
     loadSongs(user);
     attachListeners();
