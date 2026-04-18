@@ -19,7 +19,7 @@ async function getUser() {
 async function signInWithGoogle() {
   const { error } = await db.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: 'https://jamesmargraf-cyber.github.io/stereomap/index.html' }
+    options: { redirectTo: 'https://jamesmargraf-cyber.github.io/song-analyzer-dev/index.html' }
   });
   if (error) showToast(error.message, 'error');
 }
