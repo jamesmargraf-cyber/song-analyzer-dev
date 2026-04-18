@@ -327,14 +327,17 @@
       const instrCount = (song.instruments || []).length;
       const card = document.createElement('div');
       card.className = 'song-mgmt-card';
-      card.innerHTML = `
-        <div class="song-mgmt-info">
-          <div class="song-mgmt-title">${esc(song.title)}</div>
-          <div class="song-mgmt-meta">${esc(song.artist || '—')} · ${instrCount} instrument${instrCount !== 1 ? 's' : ''}</div>
-        </div>
-        <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
-        <button class="btn sm" data-song-id="${song.id}">Edit</button>
-      `;
+    const activityType = song.activity_type || 'stereo';
+    const activityLabel = activityType === 'structure' ? 'Song Structure' : 'Stereo Map';
+    const activityColor = activityType === 'structure' ? 'var(--accent)' : 'var(--amber)';
+    card.innerHTML = `
+      <div class="song-mgmt-info">
+      <div class="song-mgmt-title">${esc(song.title)}</div>
+      <div class="song-mgmt-meta">${esc(song.artist || '—')} · <span style="font-family:'DM Mono',monospace;font-size:10px;color:${activityColor};">${activityLabel}</span></div>
+      </div>
+      <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
+      <button class="btn sm" data-song-id="${song.id}">Edit</button>
+    `;
       card.querySelector('button').addEventListener('click', () => editSong(song.id));
       list.appendChild(card);
     });
