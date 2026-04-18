@@ -28,9 +28,33 @@
 
 <nav class="nav" id="nav"></nav>
 
+<!-- LANDING VIEW -->
+<div id="view-landing" class="page hidden">
+  <div style="max-width:600px; margin:60px auto 0; text-align:center; padding:0 20px;">
+    <div style="font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; margin-bottom:16px;">Choose an activity</div>
+    <div style="font-family:'DM Mono',monospace; font-size:clamp(24px,4vw,36px); font-weight:500; letter-spacing:-0.5px; margin-bottom:8px;">Song Analyzer</div>
+    <div style="font-size:14px; color:var(--text2); margin-bottom:48px; line-height:1.6;">Select an activity type to begin.</div>
+    <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+      <button id="landing-stereo-btn" style="flex:1; min-width:200px; max-width:260px; background:var(--surface); border:1.5px solid var(--border2); border-radius:16px; padding:32px 24px; cursor:pointer; transition:border-color 0.2s, background 0.2s; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">🎛</div>
+        <div style="font-size:17px; font-weight:500; color:var(--text); margin-bottom:6px;">Stereo Map</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.5;">Place instruments in the stereo field. Listen and identify where each sound sits.</div>
+      </button>
+      <button id="landing-structure-btn" style="flex:1; min-width:200px; max-width:260px; background:var(--surface); border:1.5px solid var(--border2); border-radius:16px; padding:32px 24px; cursor:pointer; transition:border-color 0.2s, background 0.2s; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">📋</div>
+        <div style="font-size:17px; font-weight:500; color:var(--text); margin-bottom:6px;">Song Structure</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.5;">Map out the sections of a song. Identify verses, choruses, bridges and more.</div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- SONG LIST VIEW -->
-<div id="view-songs" class="page">
-  <div class="page-title">Songs</div>
+<div id="view-songs" class="page hidden">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+    <button class="btn sm" id="songs-back-btn">← Activities</button>
+    <div class="page-title" style="margin:0;" id="songs-page-title">Songs</div>
+  </div>
   <div class="page-sub" id="songs-sub">Choose a song to work on.</div>
   <div class="song-list" id="song-list">
     <div class="empty"><div class="spinner"></div></div>
@@ -184,6 +208,7 @@
   let tlCurrentSong = null;
   let tlYtVideoId = null;
   let tlYtExpanded = false;
+  let currentActivityFilter = 'stereo';
 
   // ── INIT ──
   (async () => {
@@ -204,19 +229,32 @@
     const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
     if (teacher && !isPreview) { window.location.href = '/song-analyzer-dev/teacher.html'; return; }
     renderNav('student');
-    loadSongs(user);
     attachListeners();
+    showView('view-landing');
   })();
 
   function attachListeners() {
+    document.getElementById('landing-stereo-btn').addEventListener('click', () => {
+      currentActivityFilter = 'stereo';
+      loadSongs(null, 'stereo');
+      showView('view-songs');
+    });
+    document.getElementById('landing-structure-btn').addEventListener('click', () => {
+      currentActivityFilter = 'structure';
+      loadSongs(null, 'structure');
+      showView('view-songs');
+    });
     document.getElementById('back-btn').addEventListener('click', backToSongs);
+    document.getElementById('songs-back-btn').addEventListener('click', () => {
+      showView('view-landing');
+    });
     document.getElementById('tl-back-btn').addEventListener('click', () => {
       tlYtVideoId = null;
       document.getElementById('tl-yt-player-inner').innerHTML = '';
       document.getElementById('tl-yt-wrap').style.display = 'none';
       tlCurrentSong = null;
       showView('view-songs');
-      getUser().then(u => loadSongs(u));
+      getUser().then(u => loadSongs(u, currentActivityFilter));
     });
     document.getElementById('tl-reset-btn').addEventListener('click', () => {
       tlSlots = tlAnswerKey.map((_, idx) => tlLockedSlots[idx] ? tlSlots[idx] : null);
@@ -245,11 +283,14 @@
   }
 
   // ── LOAD SONGS ──
-  async function loadSongs(user) {
+  async function loadSongs(userArg, activityFilter) {
+    const user = userArg || await getUser();
+    const filter = activityFilter || currentActivityFilter || 'stereo';
     const { data: songs, error } = await db
       .from('songs')
-      .select('id, title, artist, audio_url, published')
+      .select('id, title, artist, audio_url, published, activity_type')
       .eq('published', true)
+      .eq('activity_type', filter)
       .order('created_at', { ascending: false });
 
     if (error) { showToast('Error loading songs', 'error'); return; }
@@ -275,6 +316,8 @@
       return;
     }
 
+    const activityLabel = filter === 'structure' ? 'Song Structure' : 'Stereo Map';
+    document.getElementById('songs-page-title').textContent = activityLabel;
     document.getElementById('songs-sub').textContent = `${songs.length} song${songs.length !== 1 ? 's' : ''} available.`;
     list.innerHTML = '';
 
@@ -296,12 +339,9 @@
 
       const card = document.createElement('div');
       card.className = 'song-card';
-      const activityBadge = (song.activity_type || 'stereo') === 'structure'
-        ? '<span style="font-family:DM Mono,monospace;font-size:10px;background:rgba(79,195,247,0.1);color:var(--accent);border:1px solid rgba(79,195,247,0.3);border-radius:4px;padding:1px 5px;margin-right:4px;">structure</span>'
-        : '';
       card.innerHTML = `
         <div class="song-info">
-          <div class="song-title">${activityBadge}${esc(song.title)}</div>
+          <div class="song-title">${esc(song.title)}</div>
           <div class="song-artist">${esc(song.artist || '')}</div>
         </div>
         ${done ? `<span style="font-family:DM Mono,monospace;font-size:11px;color:var(--text2);">Best: ${bestScore}%</span>` : ''}
@@ -636,7 +676,7 @@
     currentSong = null;
     allAttempts = [];
     showView('view-songs');
-    getUser().then(u => loadSongs(u));
+    getUser().then(u => loadSongs(u, currentActivityFilter));
   }
 
   function showView(id) {
