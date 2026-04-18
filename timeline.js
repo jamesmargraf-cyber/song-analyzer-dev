@@ -145,10 +145,14 @@ function renderTimeline(containerId, slots, answerKey, locks, interactive, onUpd
     container.appendChild(slotEl);
   });
 
-  // Add / remove slot buttons (teacher only)
+  // Add / remove slot buttons (teacher only) — rendered outside container
   if (interactive && !answerKey) {
+    const existingControls = document.getElementById(containerId + '-controls');
+    if (existingControls) existingControls.remove();
+
     const controls = document.createElement('div');
-    controls.style.cssText = 'display:flex;gap:8px;margin-top:12px;';
+    controls.id = containerId + '-controls';
+    controls.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
 
     const addBtn = document.createElement('button');
     addBtn.className = 'btn sm';
@@ -172,7 +176,7 @@ function renderTimeline(containerId, slots, answerKey, locks, interactive, onUpd
 
     controls.appendChild(addBtn);
     controls.appendChild(removeBtn);
-    container.appendChild(controls);
+    container.parentNode.insertBefore(controls, container.nextSibling);
   }
 }
 
@@ -194,19 +198,25 @@ function injectTimelineStyles() {
   style.textContent = `
     .timeline-container {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      flex-direction: row;
+      gap: 6px;
       padding: 4px 0;
+      overflow-x: auto;
+      align-items: stretch;
     }
     .timeline-slot {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      gap: 4px;
       background: var(--surface);
       border: 1.5px solid var(--border);
       border-radius: 10px;
-      padding: 10px 14px;
-      min-height: 52px;
+      padding: 6px 8px;
+      min-width: 80px;
+      height: 72px;
+      flex-shrink: 0;
       transition: border-color 0.15s, background 0.15s;
     }
     .timeline-slot.drag-over {
@@ -219,29 +229,28 @@ function injectTimelineStyles() {
     }
     .slot-number {
       font-family: 'DM Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text3);
-      width: 20px;
-      flex-shrink: 0;
       text-align: center;
     }
     .slot-placeholder {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text3);
       font-style: italic;
+      text-align: center;
     }
     .slot-answer-ghost {
-      font-size: 11px;
+      font-size: 10px;
       font-family: 'DM Mono', monospace;
-      margin-left: auto;
+      text-align: center;
     }
     .section-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
+      gap: 4px;
+      padding: 4px 10px;
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       cursor: grab;
       user-select: none;
@@ -256,7 +265,7 @@ function injectTimelineStyles() {
       border: none;
       color: inherit;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 14px;
       padding: 0;
       line-height: 1;
       opacity: 0.6;
