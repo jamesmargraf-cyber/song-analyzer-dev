@@ -323,24 +323,49 @@
     }
 
     list.innerHTML = '';
-    songs.forEach(song => {
-      const instrCount = (song.instruments || []).length;
-      const card = document.createElement('div');
-      card.className = 'song-mgmt-card';
-    const activityType = song.activity_type || 'stereo';
-    const activityLabel = activityType === 'structure' ? 'Song Structure' : 'Stereo Map';
-    const activityColor = activityType === 'structure' ? 'var(--accent)' : 'var(--amber)';
-    card.innerHTML = `
-      <div class="song-mgmt-info">
-      <div class="song-mgmt-title">${esc(song.title)}</div>
-      <div class="song-mgmt-meta">${esc(song.artist || '—')} · <span style="font-family:'DM Mono',monospace;font-size:10px;color:${activityColor};">${activityLabel}</span></div>
+
+    const stereoSongs = songs.filter(s => (s.activity_type || 'stereo') === 'stereo');
+    const structureSongs = songs.filter(s => s.activity_type === 'structure');
+
+    const columnsHtml = `
+      <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+        <div style="flex:1; min-width:280px;">
+          <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--amber); margin-bottom:12px;">Stereo Map</div>
+          <div id="stereo-songs-list"></div>
+        </div>
+        <div style="flex:1; min-width:280px;">
+          <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:12px;">Song Structure</div>
+          <div id="structure-songs-list"></div>
+        </div>
       </div>
-      <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
-      <button class="btn sm" data-song-id="${song.id}">Edit</button>
     `;
-      card.querySelector('button').addEventListener('click', () => editSong(song.id));
-      list.appendChild(card);
-    });
+    list.innerHTML = columnsHtml;
+
+    const renderColumn = (songList, containerId) => {
+      const container = document.getElementById(containerId);
+      if (songList.length === 0) {
+        container.innerHTML = `<div style="font-size:13px;color:var(--text3);padding:12px 0;">No songs yet.</div>`;
+        return;
+      }
+      songList.forEach(song => {
+        const instrCount = (song.instruments || []).length;
+        const card = document.createElement('div');
+        card.className = 'song-mgmt-card';
+        card.innerHTML = `
+          <div class="song-mgmt-info">
+            <div class="song-mgmt-title">${esc(song.title)}</div>
+            <div class="song-mgmt-meta">${esc(song.artist || '—')}</div>
+          </div>
+          <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
+          <button class="btn sm" data-song-id="${song.id}">Edit</button>
+        `;
+        card.querySelector('button').addEventListener('click', () => editSong(song.id));
+        container.appendChild(card);
+      });
+    };
+
+    renderColumn(stereoSongs, 'stereo-songs-list');
+    renderColumn(structureSongs, 'structure-songs-list');
   }
 
   // ── ACTIVITY TYPE SWITCH ──
