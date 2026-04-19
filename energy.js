@@ -16,7 +16,7 @@ let energyState = {
   duration: 0,
   curve: [],          // [{time, value}] sampled points
   currentTime: 0,
-  currentEnergy: 5,
+  currentEnergy: 1,
   isPlaying: false,
   isRecording: false,
   isSubmitted: false,
@@ -109,7 +109,7 @@ function createEnergyYTPlayer(onReady) {
   energyState.duration = e.target.getDuration();
   energyState.curve = [];
   energyState.currentTime = 0;
-  energyState.currentEnergy = 5;
+  energyState.currentEnergy = 1;
   energyState.slider = document.getElementById('energy-slider');
   energyState.canvas = document.getElementById('energy-canvas');
   energyState.ctx = energyState.canvas ? energyState.canvas.getContext('2d') : null;
@@ -181,7 +181,7 @@ function resetEnergyMap() {
   stopRecording();
   energyState.curve = [];
   energyState.currentTime = 0;
-  energyState.currentEnergy = 5;
+  energyState.currentEnergy = 1;
   energyState.editMode = false;
   energyState.isPlaying = false;
   if (energyState.slider) energyState.slider.value = 1;
