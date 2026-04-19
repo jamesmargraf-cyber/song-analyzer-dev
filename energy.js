@@ -184,8 +184,10 @@ function resetEnergyMap() {
   energyState.currentEnergy = 5;
   energyState.editMode = false;
   energyState.isPlaying = false;
-  energyState.slider.value = 5;
+  if (energyState.slider) energyState.slider.value = 5;
   updateSliderDisplay();
+  const sliderWrap = document.getElementById('energy-slider-wrap');
+  if (sliderWrap) sliderWrap.style.left = '0px';
   if (energyState.ytPlayer && energyState.ytReady) {
     energyState.ytPlayer.seekTo(0);
     energyState.ytPlayer.stopVideo();
