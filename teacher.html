@@ -370,15 +370,17 @@
       const renderCard = (song, isArchived) => {
         const card = document.createElement('div');
         card.className = 'song-mgmt-card';
-        card.style.opacity = isArchived ? '0.6' : '1';
+        card.style.cssText = `opacity:${isArchived ? '0.6' : '1'};flex-direction:column;align-items:flex-start;gap:10px;`;
         card.innerHTML = `
-          <div class="song-mgmt-info">
+          <div style="width:100%;">
             <div class="song-mgmt-title">${esc(song.title)}</div>
             <div class="song-mgmt-meta">${esc(song.artist || '—')}</div>
           </div>
-          <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
-          <button class="btn sm archive-btn" data-song-id="${song.id}" data-archived="${isArchived}">${isArchived ? 'Unarchive' : 'Archive'}</button>
-          <button class="btn sm edit-btn" data-song-id="${song.id}">Edit</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
+            <button class="btn sm archive-btn" data-song-id="${song.id}" data-archived="${isArchived}">${isArchived ? 'Unarchive' : 'Archive'}</button>
+            <button class="btn sm edit-btn" data-song-id="${song.id}">Edit</button>
+          </div>
         `;
         card.querySelector('.edit-btn').addEventListener('click', () => editSong(song.id));
         card.querySelector('.archive-btn').addEventListener('click', async () => {
