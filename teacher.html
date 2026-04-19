@@ -687,6 +687,163 @@
     html += '</tbody></table></div>';
     html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">Score progression shown per song. Colors indicate performance level.</div>';
     wrap.innerHTML = html;
+
+    // Load energy map section
+    await loadEnergyProgress(wrap);
+  }
+
+  // ── ENERGY MAP PROGRESS ──
+  async function loadEnergyProgress(wrap) {
+    const { data: energySongs } = await db
+      .from('songs')
+      .select('id, title, artist')
+      .eq('activity_type', 'dynamics')
+      .eq('published', true)
+      .order('created_at');
+
+    if (!energySongs || energySongs.length === 0) return;
+
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('song_id, student_id, dynamics_curve, submitted_at, profiles(name, email)')
+      .in('song_id', energySongs.map(s => s.id))
+      .not('dynamics_curve', 'eq', '[]');
+
+    if (!submissions || submissions.length === 0) return;
+
+    // Group submissions by song
+    const bySong = {};
+    submissions.forEach(s => {
+      if (!bySong[s.song_id]) bySong[s.song_id] = [];
+      bySong[s.song_id].push(s);
+    });
+
+    // Build section
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-top:32px;';
+    section.innerHTML = `
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:16px;">Song Energy Maps</div>
+    `;
+
+    energySongs.forEach(song => {
+      const subs = bySong[song.id];
+      if (!subs || subs.length === 0) return;
+
+      const names = subs.map(s => s.profiles?.name || s.profiles?.email || 'Student');
+      const curves = subs.map(s => s.dynamics_curve || []);
+
+      // Find duration from longest curve
+      const duration = Math.max(...curves.map(c => c.length > 0 ? c[c.length-1].time : 0), 60);
+
+      const songBlock = document.createElement('div');
+      songBlock.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;';
+
+      const canvasId = 'energy-overlay-' + song.id;
+      songBlock.innerHTML = `
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px;">${esc(song.title)}</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">${esc(song.artist || '')} · ${subs.length} submission${subs.length !== 1 ? 's' : ''}</div>
+        <div style="width:100%;height:200px;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px;">
+          <canvas id="${canvasId}" style="width:100%;height:100%;display:block;"></canvas>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;" id="energy-nav-${song.id}">
+          <button class="btn sm" id="energy-prev-${song.id}">←</button>
+          <span style="font-size:14px;font-weight:500;min-width:140px;text-align:center;" id="energy-name-${song.id}">All students</span>
+          <button class="btn sm" id="energy-next-${song.id}">→</button>
+        </div>
+      `;
+
+      section.appendChild(songBlock);
+
+      // After DOM insert, draw overlay and wire navigation
+      setTimeout(() => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight || 200;
+
+        let currentIdx = -1; // -1 = all students
+
+        function drawEnergyProgress() {
+          const ctx = canvas.getContext('2d');
+          const W = canvas.width, H = canvas.height;
+          const PAD_LEFT = 36, PAD_RIGHT = 16, PAD_TOP = 12, PAD_BOTTOM = 24;
+          const graphW = W - PAD_LEFT - PAD_RIGHT;
+          const graphH = H - PAD_TOP - PAD_BOTTOM;
+          const overlayColors = ['#4fc3f7','#e05050','#1D9E75','#BA7517','#7F77DD','#D85A30','#ffa726','#ce93d8','#80cbc4','#aed581'];
+
+          ctx.clearRect(0, 0, W, H);
+          ctx.fillStyle = 'rgba(15,17,23,0.8)';
+          ctx.fillRect(0, 0, W, H);
+
+          // Grid
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+          ctx.lineWidth = 1;
+          for (let i = 1; i <= 9; i++) {
+            const y = PAD_TOP + graphH - (i / 10) * graphH;
+            ctx.beginPath(); ctx.moveTo(PAD_LEFT, y); ctx.lineTo(PAD_LEFT + graphW, y); ctx.stroke();
+          }
+
+          // Y labels
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.font = '10px DM Mono, monospace';
+          ctx.textAlign = 'right';
+          [1,3,5,7,10].forEach(v => {
+            const y = PAD_TOP + graphH - ((v-1)/9)*graphH;
+            ctx.fillText(v, PAD_LEFT-4, y+3);
+          });
+
+          // X labels
+          ctx.textAlign = 'center';
+          const tickCount = Math.min(8, Math.floor(duration/30));
+          const tickInterval = duration / (tickCount || 1);
+          for (let i = 0; i <= tickCount; i++) {
+            const t = i * tickInterval;
+            const x = PAD_LEFT + (t/duration)*graphW;
+            const mins = Math.floor(t/60), secs = Math.floor(t%60);
+            ctx.fillText(`${mins}:${secs.toString().padStart(2,'0')}`, x, H-6);
+          }
+
+          // Draw curves
+          curves.forEach((curve, i) => {
+            if (!curve || curve.length < 2) return;
+            const isActive = currentIdx === -1 || currentIdx === i;
+            const color = overlayColors[i % overlayColors.length];
+            ctx.globalAlpha = currentIdx === -1 ? 0.85 : (currentIdx === i ? 1 : 0.15);
+            ctx.beginPath();
+            ctx.moveTo(PAD_LEFT + (curve[0].time/duration)*graphW, PAD_TOP + graphH - ((curve[0].value-1)/9)*graphH);
+            for (let j = 1; j < curve.length; j++) {
+              ctx.lineTo(PAD_LEFT + (curve[j].time/duration)*graphW, PAD_TOP + graphH - ((curve[j].value-1)/9)*graphH);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = currentIdx === i ? 3 : 2;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          });
+
+          // Update name display
+          const nameEl = document.getElementById('energy-name-' + song.id);
+          if (nameEl) nameEl.textContent = currentIdx === -1 ? 'All students' : names[currentIdx];
+        }
+
+        drawEnergyProgress();
+
+        document.getElementById('energy-prev-' + song.id).addEventListener('click', () => {
+          if (currentIdx === -1) currentIdx = curves.length - 1;
+          else if (currentIdx === 0) currentIdx = -1;
+          else currentIdx--;
+          drawEnergyProgress();
+        });
+
+        document.getElementById('energy-next-' + song.id).addEventListener('click', () => {
+          currentIdx = currentIdx >= curves.length - 1 ? -1 : currentIdx + 1;
+          drawEnergyProgress();
+        });
+
+      }, 100);
+    });
+
+    wrap.appendChild(section);
   }
 
   // ── CLEAR DATA ──
