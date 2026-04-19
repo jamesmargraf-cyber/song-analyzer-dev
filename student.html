@@ -1124,6 +1124,11 @@
     }
 
     showView('view-energy');
+    // Focus slider so keyboard works immediately
+    setTimeout(() => {
+      const slider = document.getElementById('energy-slider');
+      if (slider) slider.focus();
+    }, 100);
 
     if (!isStudentSong && song.audio_url) {
       document.getElementById('energy-yt-container').style.display = 'block';
