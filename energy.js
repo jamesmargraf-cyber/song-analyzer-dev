@@ -102,16 +102,23 @@ function createEnergyYTPlayer(onReady) {
     playerVars: { rel: 0, modestbranding: 1 },
     events: {
       onReady: e => {
-        energyState.ytReady = true;
-        energyState.duration = e.target.getDuration();
-        energyState.curve = [];
-        energyState.currentTime = 0;
-        energyState.currentEnergy = 5;
-        energyState.slider.value = 5;
-        updateSliderDisplay();
-        drawCurve();
-        if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
-      },
+  energyState.ytReady = true;
+  energyState.duration = e.target.getDuration();
+  energyState.curve = [];
+  energyState.currentTime = 0;
+  energyState.currentEnergy = 5;
+  energyState.slider = document.getElementById('energy-slider');
+  energyState.canvas = document.getElementById('energy-canvas');
+  energyState.ctx = energyState.canvas ? energyState.canvas.getContext('2d') : null;
+  if (energyState.canvas) {
+    energyState.canvas.width = energyState.canvas.offsetWidth;
+    energyState.canvas.height = energyState.canvas.offsetHeight || 200;
+  }
+  if (energyState.slider) energyState.slider.value = 5;
+  updateSliderDisplay();
+  drawCurve();
+  if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
+},
       onStateChange: e => {
         if (e.data === YT.PlayerState.PLAYING) {
           energyState.isPlaying = true;
