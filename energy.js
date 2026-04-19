@@ -16,7 +16,7 @@ let energyState = {
   duration: 0,
   curve: [],          // [{time, value}] sampled points
   currentTime: 0,
-  currentEnergy: 1,
+  currentEnergy: 5,
   isPlaying: false,
   isRecording: false,
   isSubmitted: false,
@@ -37,30 +37,10 @@ function initEnergyMap(canvasId, sliderId) {
 
   // Slider input
   energyState.slider.addEventListener('input', e => {
-    energyState.currentEnergy = parseFloat(e.target.value);
+    energyState.currentEnergy = parseInt(e.target.value);
     updateSliderDisplay();
-    if (energyState.isPlaying) {
-      recordSample(energyState.currentTime, energyState.currentEnergy);
-      drawCurve();
-    } else if (energyState.editMode) {
+    if (energyState.editMode) {
       editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
-    }
-  });
-
-  // Also handle keyboard arrow keys
-  energyState.slider.addEventListener('keydown', e => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
-        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      setTimeout(() => {
-        energyState.currentEnergy = parseFloat(energyState.slider.value);
-        updateSliderDisplay();
-        if (energyState.isPlaying) {
-          recordSample(energyState.currentTime, energyState.currentEnergy);
-          drawCurve();
-        } else if (energyState.editMode) {
-          editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
-        }
-      }, 0);
     }
   });
 
@@ -122,33 +102,24 @@ function createEnergyYTPlayer(onReady) {
     playerVars: { rel: 0, modestbranding: 1 },
     events: {
       onReady: e => {
-  energyState.ytReady = true;
-  energyState.duration = e.target.getDuration();
-  energyState.curve = [];
-  energyState.currentTime = 0;
-  energyState.currentEnergy = 1;
-  energyState.slider = document.getElementById('energy-slider');
-  energyState.canvas = document.getElementById('energy-canvas');
-  energyState.ctx = energyState.canvas ? energyState.canvas.getContext('2d') : null;
-  if (energyState.canvas) {
-    energyState.canvas.width = energyState.canvas.offsetWidth;
-    energyState.canvas.height = energyState.canvas.offsetHeight || 200;
-  }
-  if (energyState.slider) energyState.slider.value = 1;
-  updateSliderDisplay();
-  drawCurve();
-  if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
-},
+        energyState.ytReady = true;
+        energyState.duration = e.target.getDuration();
+        energyState.curve = [];
+        energyState.currentTime = 0;
+        energyState.currentEnergy = 5;
+        energyState.slider.value = 5;
+        updateSliderDisplay();
+        drawCurve();
+        if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
+      },
       onStateChange: e => {
-  if (e.data === YT.PlayerState.PLAYING) {
-    energyState.isPlaying = true;
-    startRecording();
-    // Refocus slider so arrow keys work immediately after pressing play
-    setTimeout(() => {
-      const slider = document.getElementById('energy-slider');
-      if (slider) slider.focus();
-    }, 150);
-  } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+        if (e.data === YT.PlayerState.PLAYING) {
+          energyState.isPlaying = true;
+          startRecording();
+        } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+          energyState.isPlaying = false;
+          stopRecording();
+          if (e.data === YT.PlayerState.ENDED) {
             energyState.editMode = true;
             updateEnergyUI();
           }
@@ -200,13 +171,11 @@ function resetEnergyMap() {
   stopRecording();
   energyState.curve = [];
   energyState.currentTime = 0;
-  energyState.currentEnergy = 1;
+  energyState.currentEnergy = 5;
   energyState.editMode = false;
   energyState.isPlaying = false;
-  if (energyState.slider) energyState.slider.value = 1;
+  energyState.slider.value = 5;
   updateSliderDisplay();
-  const sliderWrap = document.getElementById('energy-slider-wrap');
-  if (sliderWrap) sliderWrap.style.left = '0px';
   if (energyState.ytPlayer && energyState.ytReady) {
     energyState.ytPlayer.seekTo(0);
     energyState.ytPlayer.stopVideo();
