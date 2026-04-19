@@ -3,7 +3,7 @@
 // ── CONSTANTS ──
 const ENERGY_MIN = 1;
 const ENERGY_MAX = 10;
-const SAMPLE_INTERVAL = 0.5; // seconds between curve samples
+const SAMPLE_INTERVAL = 0.25; // seconds between curve samples
 const CURVE_COLOR = 'rgba(79,195,247,0.8)';
 const CURVE_FILL = 'rgba(79,195,247,0.15)';
 const GRID_COLOR = 'rgba(255,255,255,0.06)';
@@ -16,7 +16,7 @@ let energyState = {
   duration: 0,
   curve: [],          // [{time, value}] sampled points
   currentTime: 0,
-  currentEnergy: 5,
+  currentEnergy: 1,
   isPlaying: false,
   isRecording: false,
   isSubmitted: false,
@@ -37,10 +37,29 @@ function initEnergyMap(canvasId, sliderId) {
 
   // Slider input
   energyState.slider.addEventListener('input', e => {
-    energyState.currentEnergy = parseInt(e.target.value);
+    energyState.currentEnergy = parseFloat(e.target.value);
     updateSliderDisplay();
-    if (energyState.editMode) {
+    if (energyState.isPlaying) {
+      recordSample(energyState.currentTime, energyState.currentEnergy);
+      drawCurve();
+    } else if (energyState.editMode) {
       editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
+    }
+  });
+
+  // Keyboard arrow keys
+  energyState.slider.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      setTimeout(() => {
+        energyState.currentEnergy = parseFloat(energyState.slider.value);
+        updateSliderDisplay();
+        if (energyState.isPlaying) {
+          recordSample(energyState.currentTime, energyState.currentEnergy);
+          drawCurve();
+        } else if (energyState.editMode) {
+          editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
+        }
+      }, 0);
     }
   });
 
@@ -106,8 +125,15 @@ function createEnergyYTPlayer(onReady) {
         energyState.duration = e.target.getDuration();
         energyState.curve = [];
         energyState.currentTime = 0;
-        energyState.currentEnergy = 5;
-        energyState.slider.value = 5;
+        energyState.currentEnergy = 1;
+        energyState.slider = document.getElementById('energy-slider');
+        energyState.canvas = document.getElementById('energy-canvas');
+        energyState.ctx = energyState.canvas ? energyState.canvas.getContext('2d') : null;
+        if (energyState.canvas) {
+          energyState.canvas.width = energyState.canvas.offsetWidth;
+          energyState.canvas.height = energyState.canvas.offsetHeight || 200;
+        }
+        if (energyState.slider) energyState.slider.value = 1;
         updateSliderDisplay();
         drawCurve();
         if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
@@ -116,13 +142,18 @@ function createEnergyYTPlayer(onReady) {
         if (e.data === YT.PlayerState.PLAYING) {
           energyState.isPlaying = true;
           startRecording();
-        } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+          setTimeout(() => {
+            const slider = document.getElementById('energy-slider');
+            if (slider) slider.focus();
+          }, 150);
+        } else if (e.data === YT.PlayerState.PAUSED) {
           energyState.isPlaying = false;
           stopRecording();
-          if (e.data === YT.PlayerState.ENDED) {
-            energyState.editMode = true;
-            updateEnergyUI();
-          }
+        } else if (e.data === YT.PlayerState.ENDED) {
+          energyState.isPlaying = false;
+          stopRecording();
+          energyState.editMode = true;
+          updateEnergyUI();
         }
       }
     }
@@ -171,11 +202,13 @@ function resetEnergyMap() {
   stopRecording();
   energyState.curve = [];
   energyState.currentTime = 0;
-  energyState.currentEnergy = 5;
+  energyState.currentEnergy = 1;
   energyState.editMode = false;
   energyState.isPlaying = false;
-  energyState.slider.value = 5;
+  if (energyState.slider) energyState.slider.value = 1;
   updateSliderDisplay();
+  const sliderWrap = document.getElementById('energy-slider-wrap');
+  if (sliderWrap) sliderWrap.style.left = '0px';
   if (energyState.ytPlayer && energyState.ytReady) {
     energyState.ytPlayer.seekTo(0);
     energyState.ytPlayer.stopVideo();
@@ -344,17 +377,18 @@ function updateSliderDisplay() {
 }
 
 function updatePlayheadPosition() {
-  // Move the slider container to follow playhead
   const canvas = energyState.canvas;
   if (!canvas || !energyState.duration) return;
   const PAD_LEFT = 36;
   const PAD_RIGHT = 16;
-  const graphW = canvas.offsetWidth - PAD_LEFT - PAD_RIGHT;
+  const canvasW = canvas.width || canvas.offsetWidth;
+  if (!canvasW) return;
+  const graphW = canvasW - PAD_LEFT - PAD_RIGHT;
   const pct = energyState.currentTime / energyState.duration;
   const x = PAD_LEFT + pct * graphW;
   const sliderWrap = document.getElementById('energy-slider-wrap');
   if (sliderWrap) {
-    sliderWrap.style.left = Math.max(0, Math.min(canvas.offsetWidth - 40, x - 20)) + 'px';
+    sliderWrap.style.left = Math.max(0, Math.min(canvasW - 40, x - 20)) + 'px';
   }
 }
 
