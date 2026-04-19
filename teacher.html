@@ -190,6 +190,14 @@
       </div>
     </div>
 
+    <!-- SONG ENERGY MAP SECTION -->
+    <div id="dynamics-section" style="display:none;">
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div style="font-size:13px; color:var(--green); font-weight:500; margin-bottom:6px;">⚡ Song Energy Map</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.6;">No answer key needed. Students will track the energy level of this song in real time as it plays. Just provide a title, artist, and YouTube URL above, then publish.</div>
+      </div>
+    </div>
+
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
       <input type="checkbox" id="f-published" style="width:16px;height:16px;accent-color:var(--accent);">
       <label for="f-published" style="font-size:14px; color:var(--text); cursor:pointer;">Published (visible to students)</label>
@@ -378,6 +386,7 @@
   function switchActivityType(type) {
     document.getElementById('stereo-section').style.display = type === 'stereo' ? 'block' : 'none';
     document.getElementById('structure-section').style.display = type === 'structure' ? 'block' : 'none';
+    document.getElementById('dynamics-section').style.display = type === 'dynamics' ? 'block' : 'none';
     if (type === 'structure') {
       injectTimelineStyles();
       renderSectionTypeToggles();

@@ -1103,24 +1103,45 @@
     energyCurrentSong = song;
     energyIsStudentSong = isStudentSong;
 
-    document.getElementById('energy-song-title').textContent = isStudentSong ? 'My Song' : song.title;
-    document.getElementById('energy-song-artist').textContent = isStudentSong ? 'Choose a song below' : (song.artist || '');
+    document.getElementById('energy-song-title').textContent = isStudentSong ? 'Song Energy Map' : song.title;
+    document.getElementById('energy-song-artist').textContent = isStudentSong ? 'Paste a YouTube link below to get started' : (song.artist || '');
     document.getElementById('energy-url-wrap').style.display = isStudentSong ? 'block' : 'none';
-    document.getElementById('energy-yt-container').style.display = isStudentSong ? 'none' : 'block';
+    document.getElementById('energy-yt-container').style.display = 'none';
     document.getElementById('energy-results-panel').classList.add('hidden');
+    document.getElementById('energy-submit-btn').style.display = 'none';
+    document.getElementById('energy-recording-msg').style.display = 'block';
+    document.getElementById('energy-edit-msg').style.display = 'none';
 
-    resetEnergyMap();
-    updateEnergyUI();
+    // Reset state
+    energyState.curve = [];
+    energyState.currentTime = 0;
+    energyState.currentEnergy = 5;
+    energyState.editMode = false;
+    energyState.duration = 0;
+    if (energyState.recordingInterval) {
+      clearInterval(energyState.recordingInterval);
+      energyState.recordingInterval = null;
+    }
+
     showView('view-energy');
 
     if (!isStudentSong && song.audio_url) {
       document.getElementById('energy-yt-container').style.display = 'block';
-      loadEnergyYT(song.audio_url, 'energy-yt-player-wrap', (duration, title) => {
-        document.getElementById('energy-song-title').textContent = song.title;
-        initEnergyMap('energy-canvas', 'energy-slider');
-        initCanvasSeek('energy-canvas');
-        resizeCanvas();
-      });
+      // Load YT API if needed
+      if (!document.getElementById('yt-api-script')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-api-script';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+      setTimeout(() => {
+        loadEnergyYT(song.audio_url, 'energy-yt-player-wrap', (duration, title) => {
+          document.getElementById('energy-song-title').textContent = song.title;
+          initEnergyMap('energy-canvas', 'energy-slider');
+          initCanvasSeek('energy-canvas');
+          resizeCanvas();
+        });
+      }, 100);
     }
   }
 
@@ -1141,17 +1162,32 @@
 
     document.getElementById('energy-url-btn').addEventListener('click', () => {
       const url = document.getElementById('energy-url-input').value.trim();
-      if (!url) return;
+      if (!url) { showToast('Please paste a YouTube URL', 'error'); return; }
+      const id = extractEnergyYTId(url);
+      if (!id) { showToast('Could not find a YouTube video at that URL', 'error'); return; }
+
       document.getElementById('energy-yt-container').style.display = 'block';
-      loadEnergyYT(url, 'energy-yt-player-wrap', (duration, title) => {
-        energyCurrentSong = { audio_url: url, title: title || 'My Song' };
-        energyIsStudentSong = true;
-        document.getElementById('energy-song-title').textContent = title || 'My Song';
-        document.getElementById('energy-url-wrap').style.display = 'none';
-        initEnergyMap('energy-canvas', 'energy-slider');
-        initCanvasSeek('energy-canvas');
-        resizeCanvas();
-      });
+      document.getElementById('energy-url-wrap').style.display = 'none';
+
+      // Load YT API if needed
+      if (!document.getElementById('yt-api-script')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-api-script';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+
+      setTimeout(() => {
+        loadEnergyYT(url, 'energy-yt-player-wrap', (duration, title) => {
+          energyCurrentSong = { audio_url: url, title: title || 'My Song' };
+          energyIsStudentSong = true;
+          document.getElementById('energy-song-title').textContent = title || 'My Song';
+          document.getElementById('energy-song-artist').textContent = '';
+          initEnergyMap('energy-canvas', 'energy-slider');
+          initCanvasSeek('energy-canvas');
+          resizeCanvas();
+        });
+      }, 200);
     });
 
     document.getElementById('energy-reset-btn').addEventListener('click', () => {
