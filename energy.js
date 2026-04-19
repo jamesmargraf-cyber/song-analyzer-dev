@@ -37,9 +37,12 @@ function initEnergyMap(canvasId, sliderId) {
 
   // Slider input
   energyState.slider.addEventListener('input', e => {
-    energyState.currentEnergy = parseInt(e.target.value);
+    energyState.currentEnergy = parseFloat(e.target.value);
     updateSliderDisplay();
-    if (energyState.editMode) {
+    if (energyState.isPlaying) {
+      recordSample(energyState.currentTime, energyState.currentEnergy);
+      drawCurve();
+    } else if (energyState.editMode) {
       editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
     }
   });
