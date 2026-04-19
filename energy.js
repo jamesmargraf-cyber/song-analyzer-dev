@@ -117,7 +117,7 @@ function createEnergyYTPlayer(onReady) {
     energyState.canvas.width = energyState.canvas.offsetWidth;
     energyState.canvas.height = energyState.canvas.offsetHeight || 200;
   }
-  if (energyState.slider) energyState.slider.value = 5;
+  if (energyState.slider) energyState.slider.value = 1;
   updateSliderDisplay();
   drawCurve();
   if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
@@ -184,7 +184,7 @@ function resetEnergyMap() {
   energyState.currentEnergy = 5;
   energyState.editMode = false;
   energyState.isPlaying = false;
-  if (energyState.slider) energyState.slider.value = 5;
+  if (energyState.slider) energyState.slider.value = 1;
   updateSliderDisplay();
   const sliderWrap = document.getElementById('energy-slider-wrap');
   if (sliderWrap) sliderWrap.style.left = '0px';
