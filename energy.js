@@ -123,13 +123,15 @@ function createEnergyYTPlayer(onReady) {
   if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
 },
       onStateChange: e => {
-        if (e.data === YT.PlayerState.PLAYING) {
-          energyState.isPlaying = true;
-          startRecording();
-        } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
-          energyState.isPlaying = false;
-          stopRecording();
-          if (e.data === YT.PlayerState.ENDED) {
+  if (e.data === YT.PlayerState.PLAYING) {
+    energyState.isPlaying = true;
+    startRecording();
+    // Refocus slider so arrow keys work immediately after pressing play
+    setTimeout(() => {
+      const slider = document.getElementById('energy-slider');
+      if (slider) slider.focus();
+    }, 150);
+  } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
             energyState.editMode = true;
             updateEnergyUI();
           }
