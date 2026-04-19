@@ -1103,6 +1103,27 @@
     energyCurrentSong = song;
     energyIsStudentSong = isStudentSong;
 
+    // Check for existing submission
+    if (!isStudentSong && song.id) {
+      const user = await getUser();
+      const { data: existing } = await db
+        .from('submissions')
+        .select('dynamics_curve')
+        .eq('song_id', song.id)
+        .eq('student_id', user.id)
+        .single();
+      if (existing?.dynamics_curve?.length > 1) {
+        energyState.curve = existing.dynamics_curve;
+        energyState.editMode = true;
+      } else {
+        energyState.curve = [];
+        energyState.editMode = false;
+      }
+    } else {
+      energyState.curve = [];
+      energyState.editMode = false;
+    }
+
     document.getElementById('energy-song-title').textContent = isStudentSong ? 'Song Energy Map' : song.title;
     document.getElementById('energy-song-artist').textContent = isStudentSong ? 'Paste a YouTube link below to get started' : (song.artist || '');
     document.getElementById('energy-url-wrap').style.display = isStudentSong ? 'block' : 'none';
