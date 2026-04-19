@@ -45,6 +45,11 @@
         <div style="font-size:17px; font-weight:500; color:var(--text); margin-bottom:6px;">Song Structure</div>
         <div style="font-size:13px; color:var(--text2); line-height:1.5;">Map out the sections of a song. Identify verses, choruses, bridges and more.</div>
       </button>
+      <button id="landing-energy-btn" style="flex:1; min-width:200px; max-width:260px; background:var(--surface); border:1.5px solid var(--border2); border-radius:16px; padding:32px 24px; cursor:pointer; transition:border-color 0.2s, background 0.2s; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">⚡</div>
+        <div style="font-size:17px; font-weight:500; color:var(--text); margin-bottom:6px;">Song Energy Map</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.5;">Track the energy and intensity of a song as it plays. Draw your own dynamic curve.</div>
+      </button>
     </div>
   </div>
 </div>
@@ -185,10 +190,94 @@
 </div>
 
 
+<!-- SONG ENERGY MAP VIEW -->
+<div id="view-energy" class="page hidden">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+    <button class="btn sm" id="energy-back-btn">← Songs</button>
+    <div style="flex:1; min-width:0;">
+      <div style="font-size:17px; font-weight:500;" id="energy-song-title">—</div>
+      <div style="font-size:13px; color:var(--text2);" id="energy-song-artist">—</div>
+    </div>
+  </div>
+
+  <!-- URL INPUT (student songs only) -->
+  <div id="energy-url-wrap" style="display:none; margin-bottom:16px;">
+    <div class="field">
+      <label>Paste a YouTube link to get started</label>
+      <div style="display:flex; gap:8px;">
+        <input class="input" id="energy-url-input" placeholder="https://www.youtube.com/watch?v=...">
+        <button class="btn primary" id="energy-url-btn">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YOUTUBE PLAYER -->
+  <div id="energy-yt-container" style="margin-bottom:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:none;">
+    <div id="energy-yt-player-wrap"></div>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="instructions" id="energy-recording-msg">
+    <strong>Press play</strong> and move the slider up or down to track the energy level as the song plays. The curve draws automatically.
+  </div>
+  <div class="instructions" id="energy-edit-msg" style="display:none;">
+    <strong>Playback complete.</strong> Click anywhere on the graph to seek, then adjust the slider to edit your curve. When you're happy, click Submit.
+  </div>
+
+  <!-- CANVAS + SLIDER -->
+  <div style="position:relative; margin-bottom:8px;">
+    <div style="width:100%; height:200px; border-radius:12px; overflow:hidden; border:1px solid var(--border);">
+      <canvas id="energy-canvas" style="width:100%; height:100%; display:block;"></canvas>
+    </div>
+    <!-- Traveling slider -->
+    <div id="energy-slider-wrap" style="position:absolute; top:8px; left:0; display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:auto; z-index:10;">
+      <div id="energy-value-label" style="font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:500; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:2px 7px; min-width:28px; text-align:center;">5</div>
+      <input type="range" id="energy-slider" min="1" max="10" value="5" step="0.5"
+        style="writing-mode:vertical-lr; direction:rtl; width:32px; height:140px; accent-color:var(--accent); cursor:pointer;">
+    </div>
+  </div>
+
+  <div style="font-size:12px; color:var(--text3); margin-bottom:16px; text-align:center;">
+    Energy level 1 (low) → 10 (high)
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" id="energy-reset-btn">Reset</button>
+    <button class="btn primary" id="energy-submit-btn" style="display:none;">Submit →</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-panel hidden" id="energy-results-panel" style="margin-top:16px;">
+    <div class="results-title">Your submission</div>
+    <div style="width:100%; height:200px; border-radius:12px; overflow:hidden; border:1px solid var(--border); margin-bottom:12px;">
+      <canvas id="energy-overlay-canvas" style="width:100%; height:100%; display:block;"></canvas>
+    </div>
+    <div id="energy-overlay-legend" style="font-size:12px; color:var(--text2); margin-bottom:12px;"></div>
+    <div id="energy-class-note" style="font-size:13px; color:var(--text2);"></div>
+  </div>
+</div>
+
+<!-- ENERGY SONG LIST VIEW -->
+<div id="view-energy-songs" class="page hidden">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+    <button class="btn sm" id="energy-songs-back-btn">← Activities</button>
+    <div class="page-title" style="margin:0;">Song Energy Map</div>
+  </div>
+  <div class="page-sub" id="energy-songs-sub">Choose a song or map your own.</div>
+  <div style="margin-bottom:20px;">
+    <button class="btn primary" id="energy-my-song-btn">+ Map my own song</button>
+  </div>
+  <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:12px;">Teacher songs</div>
+  <div class="song-list" id="energy-song-list">
+    <div class="empty"><div class="spinner"></div></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/song-analyzer-dev/app.js"></script>
 <script src="/song-analyzer-dev/map.js"></script>
 <script src="/song-analyzer-dev/timeline.js"></script>
+<script src="/song-analyzer-dev/energy.js"></script>
 <script>
   const MAX_ATTEMPTS = 3;
 
@@ -209,6 +298,8 @@
   let tlYtVideoId = null;
   let tlYtExpanded = false;
   let currentActivityFilter = 'stereo';
+  let energyCurrentSong = null;
+  let energyIsStudentSong = false;
 
   // ── INIT ──
   (async () => {
@@ -243,6 +334,10 @@
       currentActivityFilter = 'structure';
       loadSongs(null, 'structure');
       showView('view-songs');
+    });
+    document.getElementById('landing-energy-btn').addEventListener('click', () => {
+      loadEnergySongs();
+      showView('view-energy-songs');
     });
     document.getElementById('back-btn').addEventListener('click', backToSongs);
     document.getElementById('songs-back-btn').addEventListener('click', () => {
@@ -280,6 +375,7 @@
       e.stopPropagation();
       setLoop(e.target.checked);
     });
+    setupEnergyListeners();
   }
 
   // ── LOAD SONGS ──
@@ -957,6 +1053,203 @@
     document.getElementById('tl-yt-player-wrap').style.height = '0';
     inner.innerHTML = buildYTIframe(tlYtVideoId, false);
     wrap.style.display = 'block';
+  }
+
+  // ── SONG ENERGY MAP ──
+  async function loadEnergySongs() {
+    const user = await getUser();
+    const list = document.getElementById('energy-song-list');
+    list.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+
+    const { data: songs } = await db
+      .from('songs')
+      .select('id, title, artist, audio_url, published, activity_type')
+      .eq('published', true)
+      .eq('activity_type', 'dynamics')
+      .order('created_at', { ascending: false });
+
+    if (!songs || songs.length === 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-text">No teacher songs yet.</div></div>';
+      return;
+    }
+
+    // Get submissions for this student
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('song_id, overall_score, attempt_number')
+      .eq('student_id', user.id);
+
+    const submittedIds = new Set((submissions || []).map(s => s.song_id));
+    list.innerHTML = '';
+
+    songs.forEach(song => {
+      const done = submittedIds.has(song.id);
+      const card = document.createElement('div');
+      card.className = 'song-card';
+      card.innerHTML = `
+        <div class="song-info">
+          <div class="song-title">${esc(song.title)}</div>
+          <div class="song-artist">${esc(song.artist || '')}</div>
+        </div>
+        <span class="song-status ${done ? 'done' : 'new'}">${done ? 'Submitted' : 'Not started'}</span>
+        <button class="btn sm primary">${done ? 'Review' : 'Start →'}</button>
+      `;
+      card.querySelector('button').addEventListener('click', () => openEnergySong(song, false));
+      list.appendChild(card);
+    });
+  }
+
+  async function openEnergySong(song, isStudentSong) {
+    energyCurrentSong = song;
+    energyIsStudentSong = isStudentSong;
+
+    document.getElementById('energy-song-title').textContent = isStudentSong ? 'My Song' : song.title;
+    document.getElementById('energy-song-artist').textContent = isStudentSong ? 'Choose a song below' : (song.artist || '');
+    document.getElementById('energy-url-wrap').style.display = isStudentSong ? 'block' : 'none';
+    document.getElementById('energy-yt-container').style.display = isStudentSong ? 'none' : 'block';
+    document.getElementById('energy-results-panel').classList.add('hidden');
+
+    resetEnergyMap();
+    updateEnergyUI();
+    showView('view-energy');
+
+    if (!isStudentSong && song.audio_url) {
+      document.getElementById('energy-yt-container').style.display = 'block';
+      loadEnergyYT(song.audio_url, 'energy-yt-player-wrap', (duration, title) => {
+        document.getElementById('energy-song-title').textContent = song.title;
+        initEnergyMap('energy-canvas', 'energy-slider');
+        initCanvasSeek('energy-canvas');
+        resizeCanvas();
+      });
+    }
+  }
+
+  function setupEnergyListeners() {
+    document.getElementById('energy-back-btn').addEventListener('click', () => {
+      stopRecording();
+      if (energyState.ytPlayer) energyState.ytPlayer.stopVideo();
+      showView('view-energy-songs');
+    });
+
+    document.getElementById('energy-songs-back-btn').addEventListener('click', () => {
+      showView('view-landing');
+    });
+
+    document.getElementById('energy-my-song-btn').addEventListener('click', () => {
+      openEnergySong({}, true);
+    });
+
+    document.getElementById('energy-url-btn').addEventListener('click', () => {
+      const url = document.getElementById('energy-url-input').value.trim();
+      if (!url) return;
+      document.getElementById('energy-yt-container').style.display = 'block';
+      loadEnergyYT(url, 'energy-yt-player-wrap', (duration, title) => {
+        energyCurrentSong = { audio_url: url, title: title || 'My Song' };
+        energyIsStudentSong = true;
+        document.getElementById('energy-song-title').textContent = title || 'My Song';
+        document.getElementById('energy-url-wrap').style.display = 'none';
+        initEnergyMap('energy-canvas', 'energy-slider');
+        initCanvasSeek('energy-canvas');
+        resizeCanvas();
+      });
+    });
+
+    document.getElementById('energy-reset-btn').addEventListener('click', () => {
+      resetEnergyMap();
+      updateEnergyUI();
+      document.getElementById('energy-results-panel').classList.add('hidden');
+    });
+
+    document.getElementById('energy-submit-btn').addEventListener('click', submitEnergyMap);
+  }
+
+  async function submitEnergyMap() {
+    const user = await getUser();
+    if (!user || energyState.curve.length < 2) {
+      showToast('Please record some energy data first', 'error');
+      return;
+    }
+
+    let songId = energyCurrentSong?.id;
+
+    // For student songs, create a student_songs record first
+    if (energyIsStudentSong) {
+      const { data: studentSong, error: ssError } = await db
+        .from('student_songs')
+        .insert({
+          student_id: user.id,
+          title: energyCurrentSong?.title || 'My Song',
+          audio_url: energyCurrentSong?.audio_url || '',
+        })
+        .select()
+        .single();
+
+      if (ssError) { showToast('Error saving song', 'error'); return; }
+      songId = studentSong.id;
+    }
+
+    const { error } = await db.from('submissions').insert({
+      student_id: user.id,
+      song_id: songId || '00000000-0000-0000-0000-000000000000',
+      student_positions: [],
+      results: [],
+      overall_score: 0,
+      attempt_number: 1,
+      attempts_used: 1,
+      dynamics_curve: energyState.curve,
+      submitted_at: new Date().toISOString(),
+    });
+
+    if (error) { showToast('Error saving: ' + error.message, 'error'); return; }
+
+    showToast('Energy map submitted!', 'success');
+    document.getElementById('energy-submit-btn').style.display = 'none';
+
+    // Show overlay if teacher song
+    if (!energyIsStudentSong && songId) {
+      await showEnergyOverlay(songId, user.id);
+    } else {
+      showMyEnergyResult();
+    }
+  }
+
+  function showMyEnergyResult() {
+    const panel = document.getElementById('energy-results-panel');
+    panel.classList.remove('hidden');
+    const overlayCanvas = document.getElementById('energy-overlay-canvas');
+    overlayCanvas.width = overlayCanvas.offsetWidth || 600;
+    overlayCanvas.height = 200;
+    drawOverlayOnly('energy-overlay-canvas', [energyState.curve], energyState.duration, ['You']);
+    document.getElementById('energy-class-note').textContent = 'Your energy map has been saved.';
+  }
+
+  async function showEnergyOverlay(songId, userId) {
+    const { data: submissions } = await db
+      .from('submissions')
+      .select('dynamics_curve, student_id, profiles(name)')
+      .eq('song_id', songId)
+      .not('dynamics_curve', 'eq', '[]');
+
+    const panel = document.getElementById('energy-results-panel');
+    panel.classList.remove('hidden');
+
+    const overlayCanvas = document.getElementById('energy-overlay-canvas');
+    overlayCanvas.width = overlayCanvas.offsetWidth || 600;
+    overlayCanvas.height = 200;
+
+    const curves = (submissions || []).map(s => s.dynamics_curve).filter(c => c && c.length > 1);
+    const names = (submissions || []).map(s => s.profiles?.name || 'Student');
+
+    drawOverlayOnly('energy-overlay-canvas', curves, energyState.duration, names);
+
+    const legend = document.getElementById('energy-overlay-legend');
+    const overlayColors = ['#4fc3f7','#e05050','#1D9E75','#BA7517','#7F77DD','#D85A30','#ffa726','#ce93d8'];
+    legend.innerHTML = names.map((n, i) =>
+      `<span style="color:${overlayColors[i % overlayColors.length]};margin-right:14px;">&#9644; ${n}</span>`
+    ).join('');
+
+    document.getElementById('energy-class-note').textContent =
+      `${curves.length} student${curves.length !== 1 ? 's' : ''} have submitted energy maps for this song.`;
   }
 
   function esc(str) {
