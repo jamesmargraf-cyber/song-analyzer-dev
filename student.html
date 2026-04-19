@@ -1134,10 +1134,10 @@
     document.getElementById('energy-edit-msg').style.display = 'none';
 
     // Reset state
-    energyState.curve = [];
+    
     energyState.currentTime = 0;
     energyState.currentEnergy = 5;
-    energyState.editMode = false;
+   
     energyState.duration = 0;
     if (energyState.recordingInterval) {
       clearInterval(energyState.recordingInterval);
