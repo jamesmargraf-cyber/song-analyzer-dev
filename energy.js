@@ -123,7 +123,7 @@ function createEnergyYTPlayer(onReady) {
       onReady: e => {
         energyState.ytReady = true;
         energyState.duration = e.target.getDuration();
-        energyState.curve = [];
+        if (!energyState.editMode) energyState.curve = [];
         energyState.currentTime = 0;
         energyState.currentEnergy = 1;
         energyState.slider = document.getElementById('energy-slider');
@@ -136,6 +136,7 @@ function createEnergyYTPlayer(onReady) {
         if (energyState.slider) energyState.slider.value = 1;
         updateSliderDisplay();
         drawCurve();
+        if (energyState.editMode) updateEnergyUI();
         if (onReady) onReady(energyState.duration, e.target.getVideoData()?.title || '');
       },
       onStateChange: e => {
