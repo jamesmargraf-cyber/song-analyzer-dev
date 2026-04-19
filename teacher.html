@@ -357,24 +357,58 @@
 
     const renderColumn = (songList, containerId) => {
       const container = document.getElementById(containerId);
-      if (songList.length === 0) {
+      const activeSongs = songList.filter(s => !s.archived);
+      const archivedSongs = songList.filter(s => s.archived);
+
+      if (activeSongs.length === 0 && archivedSongs.length === 0) {
         container.innerHTML = `<div style="font-size:13px;color:var(--text3);padding:12px 0;">No songs yet.</div>`;
         return;
       }
-      songList.forEach(song => {
+
+      container.innerHTML = '';
+
+      const renderCard = (song, isArchived) => {
         const card = document.createElement('div');
         card.className = 'song-mgmt-card';
+        card.style.opacity = isArchived ? '0.6' : '1';
         card.innerHTML = `
           <div class="song-mgmt-info">
             <div class="song-mgmt-title">${esc(song.title)}</div>
             <div class="song-mgmt-meta">${esc(song.artist || '—')}</div>
           </div>
           <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
-          <button class="btn sm" data-song-id="${song.id}">Edit</button>
+          <button class="btn sm archive-btn" data-song-id="${song.id}" data-archived="${isArchived}">${isArchived ? 'Unarchive' : 'Archive'}</button>
+          <button class="btn sm edit-btn" data-song-id="${song.id}">Edit</button>
         `;
-        card.querySelector('button').addEventListener('click', () => editSong(song.id));
-        container.appendChild(card);
-      });
+        card.querySelector('.edit-btn').addEventListener('click', () => editSong(song.id));
+        card.querySelector('.archive-btn').addEventListener('click', async () => {
+          await db.from('songs').update({ archived: !isArchived }).eq('id', song.id);
+          loadSongs();
+        });
+        return card;
+      };
+
+      activeSongs.forEach(song => container.appendChild(renderCard(song, false)));
+
+      if (archivedSongs.length > 0) {
+        const archiveSection = document.createElement('div');
+        archiveSection.style.cssText = 'margin-top:12px;';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn sm';
+        toggleBtn.style.cssText = 'width:100%;justify-content:center;font-size:11px;color:var(--text3);';
+        toggleBtn.textContent = `▾ ${archivedSongs.length} archived`;
+        const archiveList = document.createElement('div');
+        archiveList.style.display = 'none';
+        toggleBtn.addEventListener('click', () => {
+          const isOpen = archiveList.style.display !== 'none';
+          archiveList.style.display = isOpen ? 'none' : 'block';
+          toggleBtn.textContent = `${isOpen ? '▾' : '▴'} ${archivedSongs.length} archived`;
+        });
+        archivedSongs.forEach(song => archiveList.appendChild(renderCard(song, true)));
+        archiveSection.appendChild(toggleBtn);
+        archiveSection.appendChild(archiveList);
+        container.appendChild(archiveSection);
+      }
     };
 
     renderColumn(stereoSongs, 'stereo-songs-list');

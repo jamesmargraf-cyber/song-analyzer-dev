@@ -232,7 +232,7 @@
     <!-- Traveling slider -->
     <div id="energy-slider-wrap" style="position:absolute; top:8px; left:0; display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:auto; z-index:10;">
       <div id="energy-value-label" style="font-family:'DM Mono',monospace; font-size:13px; color:var(--accent); font-weight:500; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:2px 7px; min-width:28px; text-align:center;">5</div>
-      <input type="range" id="energy-slider" min="1" max="10" value="1" step="0.1"
+      <input type="range" id="energy-slider" min="1" max="10" value="5" step="0.5"
         style="writing-mode:vertical-lr; direction:rtl; width:32px; height:140px; accent-color:var(--accent); cursor:pointer;">
     </div>
   </div>
@@ -387,6 +387,7 @@
       .select('id, title, artist, audio_url, published, activity_type')
       .eq('published', true)
       .eq('activity_type', filter)
+      .eq('archived', false)
       .order('created_at', { ascending: false });
 
     if (error) { showToast('Error loading songs', 'error'); return; }
@@ -1066,6 +1067,7 @@
       .select('id, title, artist, audio_url, published, activity_type')
       .eq('published', true)
       .eq('activity_type', 'dynamics')
+      .eq('archived', false)
       .order('created_at', { ascending: false });
 
     if (!songs || songs.length === 0) {
@@ -1103,7 +1105,7 @@
     energyCurrentSong = song;
     energyIsStudentSong = isStudentSong;
 
-    // Check for existing submission
+    // Check for existing submission to show in review
     if (!isStudentSong && song.id) {
       const user = await getUser();
       const { data: existing } = await db
@@ -1133,11 +1135,9 @@
     document.getElementById('energy-recording-msg').style.display = 'block';
     document.getElementById('energy-edit-msg').style.display = 'none';
 
-    // Reset state
-    
+    // Reset state (preserve curve and editMode set above)
     energyState.currentTime = 0;
-    energyState.currentEnergy = 5;
-   
+    energyState.currentEnergy = 1;
     energyState.duration = 0;
     if (energyState.recordingInterval) {
       clearInterval(energyState.recordingInterval);
@@ -1145,11 +1145,6 @@
     }
 
     showView('view-energy');
-    // Focus slider so keyboard works immediately
-    setTimeout(() => {
-      const slider = document.getElementById('energy-slider');
-      if (slider) slider.focus();
-    }, 100);
 
     if (!isStudentSong && song.audio_url) {
       document.getElementById('energy-yt-container').style.display = 'block';
