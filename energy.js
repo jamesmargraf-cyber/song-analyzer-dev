@@ -47,6 +47,23 @@ function initEnergyMap(canvasId, sliderId) {
     }
   });
 
+  // Also handle keyboard arrow keys
+  energyState.slider.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      setTimeout(() => {
+        energyState.currentEnergy = parseFloat(energyState.slider.value);
+        updateSliderDisplay();
+        if (energyState.isPlaying) {
+          recordSample(energyState.currentTime, energyState.currentEnergy);
+          drawCurve();
+        } else if (energyState.editMode) {
+          editCurveAtTime(energyState.currentTime, energyState.currentEnergy);
+        }
+      }, 0);
+    }
+  });
+
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
   drawCurve();
