@@ -858,105 +858,11 @@
 
   // ── PROGRESS TAB ──
   async function loadProgress() {
-    const wrap = document.getElementById('progress-wrap');
-    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
-
-    const [{ data: songs }, { data: submissions }, { data: profiles }] = await Promise.all([
-      db.from('songs').select('id, title').eq('published', true).order('created_at'),
-      db.from('submissions').select('student_id, song_id, overall_score, attempt_number').order('attempt_number', { ascending: true }).limit(1000),
-      db.from('profiles').select('id, name, email')
-    ]);
-
-    if (!songs || songs.length === 0) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-text">No published songs yet.</div></div>';
-      return;
-    }
-    if (!submissions || submissions.length === 0) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-text">No student submissions yet.</div></div>';
-      return;
-    }
-
-    // Build profile lookup map
-    const profileMap = {};
-    (profiles || []).forEach(p => { profileMap[p.id] = p.name || p.email || p.id; });
-
-    // Group by student, then by song — track all attempts
-    const studentMap = {};
-    submissions.forEach(s => {
-      const sid = s.student_id;
-      if (!studentMap[sid]) {
-        studentMap[sid] = {
-          name: profileMap[sid] || sid,
-          songs: {}
-        };
-      }
-      if (!studentMap[sid].songs[s.song_id]) {
-        studentMap[sid].songs[s.song_id] = [];
-      }
-      studentMap[sid].songs[s.song_id].push(s);
-    });
-
-    // Sort attempts within each song
-    Object.values(studentMap).forEach(student => {
-      Object.values(student.songs).forEach(attempts => {
-        attempts.sort((a, b) => a.attempt_number - b.attempt_number);
-      });
-    });
-
-    const students = Object.values(studentMap).sort((a, b) => a.name.localeCompare(b.name));
-
-    let html = `
-      <div class="progress-table-wrap">
-        <table class="progress-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              ${songs.map(s => `<th>${esc(s.title)}</th>`).join('')}
-              <th>Avg best</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    students.forEach(student => {
-      const bestScores = songs.map(s => {
-        const attempts = student.songs[s.id];
-        if (!attempts || attempts.length === 0) return null;
-        return Math.max(...attempts.map(a => a.overall_score));
-      });
-
-      const submitted = bestScores.filter(s => s !== null);
-      const avg = submitted.length > 0
-        ? Math.round(submitted.reduce((a, b) => a + b, 0) / submitted.length)
-        : null;
-
-      html += `<tr><td style="font-weight:500">${esc(student.name)}</td>`;
-      songs.forEach((song, i) => {
-        const attempts = student.songs[song.id];
-        if (!attempts || attempts.length === 0) {
-          html += `<td><span class="score-pill none">—</span></td>`;
-        } else {
-          html += `<td>
-            <span style="font-family:'DM Mono',monospace;font-size:11px;">
-              ${attempts.map(a => {
-                const c = a.overall_score >= 80 ? 'var(--green)' : a.overall_score >= 50 ? 'var(--amber)' : 'var(--red)';
-                return `<span style="color:${c}">${a.overall_score}%</span>`;
-              }).join('<span style="color:var(--text3)"> → </span>')}
-            </span>
-          </td>`;
-        }
-      });
-      const avgCls = avg !== null ? (avg >= 80 ? 'close' : avg >= 50 ? 'near' : 'far') : 'none';
-      html += `<td><span class="score-pill ${avgCls}">${avg !== null ? avg + '%' : '—'}</span></td></tr>`;
-    });
-    html += '</tbody></table></div>';
-    html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">Score progression shown per song. Colors indicate performance level.</div>';
-    wrap.innerHTML = html;
-
-    await loadEnergyProgress(wrap);
+    progressLoaded = { stereo: false, structure: false, energy: false };
+    switchProgressTab('stereo');
   }
 
-  // ── ENERGY MAP PROGRESS ──
+    // ── ENERGY MAP PROGRESS ──
   async function loadEnergyProgressTab() {
     const wrap = document.getElementById('progress-wrap-energy');
     wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
