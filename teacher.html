@@ -7,27 +7,100 @@
   <link rel="icon" href="/song-analyzer-dev/favicon.ico" sizes="any">
   <link rel="icon" href="/song-analyzer-dev/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/song-analyzer-dev/apple-touch-icon.png">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/song-analyzer-dev/style.css">
   <style>
-    .tab-bar { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; }
-    .tab { font-size: 14px; font-weight: 500; padding: 8px 18px; border-radius: 9px; border: none; background: transparent; color: var(--text2); cursor: pointer; transition: background 0.15s, color 0.15s; }
-    .tab.active { background: var(--surface2); color: var(--text); }
-    .song-mgmt-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
-    .song-mgmt-info { flex: 1; min-width: 0; }
-    .song-mgmt-title { font-size: 15px; font-weight: 500; }
-    .song-mgmt-meta { font-size: 13px; color: var(--text2); margin-top: 2px; }
-    .published-badge { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
-    .published-badge.yes { background: rgba(102,187,106,0.12); color: var(--green); border: 1px solid rgba(102,187,106,0.2); }
-    .published-badge.no  { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+    body { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: #1a1a1a; background: #f5f4f0; min-height: 100vh; }
+    .teacher-header { background: #0e0e0e; color: #f5f2ec; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    .teacher-header h1 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; letter-spacing: 0.05em; }
+    .teacher-header p { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #888; margin-top: 2px; }
+    .teacher-main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .page-title { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; margin-bottom: 4px; color: #1a1a1a; }
+    .page-sub { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #888; margin-bottom: 2rem; }
+    .tab-bar { display: flex; gap: 2px; margin-bottom: 24px; border-bottom: 2px solid #e0e0e0; }
+    .tab { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 18px; border: none; background: transparent; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s; }
+    .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+    .tab:hover { color: #333; }
+    .progress-tab-bar { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
+    .progress-tab { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 16px; border: none; background: transparent; color: #999; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+    .progress-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+    .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 10px; }
+    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .card-header { padding: 12px 18px; border-bottom: 1px solid #eee; background: #fafafa; }
+    .card-header h2 { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500; }
+    .song-mgmt-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+    .song-mgmt-title { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+    .song-mgmt-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .published-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 4px; white-space: nowrap; letter-spacing: 0.04em; }
+    .published-badge.yes { background: #1D9E7522; color: #1D9E75; border: 1px solid #1D9E7544; }
+    .published-badge.no  { background: #f0f0f0; color: #999; border: 1px solid #ddd; }
+    .btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.04em; padding: 7px 14px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #444; cursor: pointer; transition: border-color 0.15s, background 0.15s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; }
+    .btn:hover { border-color: #999; background: #f5f5f5; }
+    .btn.primary { background: #1a1a1a; border-color: #1a1a1a; color: #fff; }
+    .btn.primary:hover { background: #333; }
+    .btn.danger { background: #fff; border-color: #e05050; color: #e05050; }
+    .btn.danger:hover { background: #fff5f5; }
+    .btn.sm { font-size: 10px; padding: 5px 10px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .input { width: 100%; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px; font-size: 14px; color: #1a1a1a; font-family: 'IBM Plex Sans', sans-serif; outline: none; transition: border-color 0.2s; }
+    .input:focus { border-color: #666; }
+    .input::placeholder { color: #bbb; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #888; margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 500; margin-bottom: 6px; color: #1a1a1a; }
+    .modal-desc { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .hidden { display: none !important; }
+    .empty { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-text { font-size: 14px; color: #aaa; }
+    .spinner { width: 20px; height: 20px; border: 2px solid #ddd; border-top-color: #666; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 10px 18px; border-radius: 6px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; letter-spacing: 0.04em; }
+    .toast.show { opacity: 1; }
+    .toast.success { background: #1D9E75; }
+    .toast.error { background: #e05050; }
+    .instr-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .instr-row { display: flex; align-items: center; gap: 10px; background: #f8f8f8; border: 1px solid #eee; border-radius: 8px; padding: 8px 12px; }
+    .instr-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .instr-name { font-size: 14px; flex: 1; color: #1a1a1a; }
+    .instr-pos { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #aaa; }
+    .instr-remove { background: none; border: none; color: #ccc; cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; }
+    .instr-remove:hover { color: #e05050; }
+    .add-row { display: flex; gap: 8px; }
+    .map-wrap { width: 100%; margin-bottom: 8px; }
+    .readout { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #aaa; text-align: center; height: 20px; margin: 6px 0 16px; }
+    .progress-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e0e0e0; }
+    .progress-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .progress-table th { background: #fafafa; padding: 10px 14px; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #888; border-bottom: 1px solid #e0e0e0; white-space: nowrap; letter-spacing: 0.04em; font-weight: 500; }
+    .progress-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; color: #1a1a1a; }
+    .progress-table tr:last-child td { border-bottom: none; }
+    .progress-table tr:hover td { background: #fafafa; }
+    .score-pill { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+    .score-pill.close { background: #1D9E7522; color: #1D9E75; }
+    .score-pill.near { background: #ffa72622; color: #e09020; }
+    .score-pill.far { background: #e0505022; color: #e05050; }
+    .score-pill.none { background: #f0f0f0; color: #bbb; }
+    #map-svg { width: 100%; touch-action: none; user-select: none; display: block; }
+    .palette-container { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: #f8f8f8; border: 1px solid #eee; border-radius: 10px; margin-bottom: 12px; }
+    .timeline-container { display: flex; flex-direction: row; gap: 6px; overflow-x: auto; padding: 4px 0; }
   </style>
 </head>
 <body>
 
-<nav class="nav" id="nav"></nav>
+<div class="teacher-header">
+  <div>
+    <h1>Song Analyzer</h1>
+    <p>Teacher Dashboard</p>
+  </div>
+  <div id="nav-right-teacher" style="display:flex;align-items:center;gap:12px;"></div>
+</div>
 
-<div class="page-wide">
-  <div class="page-title">Teacher Dashboard</div>
-  <div class="page-sub">Manage songs and track student progress.</div>
+<div class="teacher-main">
+  <h2 class="page-title">Teacher Dashboard</h2>
+  <p class="page-sub">Manage songs and track student progress.</p>
 
   <div class="tab-bar">
     <button class="tab active" id="tab-btn-songs">Songs</button>
@@ -55,8 +128,19 @@
         <button class="btn sm danger" id="clear-all-btn">Clear all data</button>
       </div>
     </div>
-    <div id="progress-wrap">
-      <div class="empty"><div class="spinner"></div></div>
+    <div class="progress-tab-bar">
+      <button class="progress-tab active" id="ptab-btn-stereo">Stereo Map</button>
+      <button class="progress-tab" id="ptab-btn-structure">Song Structure</button>
+      <button class="progress-tab" id="ptab-btn-energy">Song Energy Map</button>
+    </div>
+    <div id="ptab-stereo">
+      <div id="progress-wrap-stereo"><div class="empty"><div class="spinner"></div></div></div>
+    </div>
+    <div id="ptab-structure" class="hidden">
+      <div id="progress-wrap-structure"><div class="empty"><div class="spinner"></div></div></div>
+    </div>
+    <div id="ptab-energy" class="hidden">
+      <div id="progress-wrap-energy"><div class="empty"><div class="spinner"></div></div></div>
     </div>
   </div>
 </div>
@@ -230,7 +314,15 @@
     if (!user) { window.location.href = '/song-analyzer-dev/index.html'; return; }
     const teacher = await isTeacher(user);
     if (!teacher) { window.location.href = '/song-analyzer-dev/student.html'; return; }
-    renderNav('teacher');
+    // Light theme nav
+    const navRight = document.getElementById('nav-right-teacher');
+    if (navRight) {
+      navRight.innerHTML = `
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;">${user.user_metadata?.full_name || user.email}</span>
+        <a href="/song-analyzer-dev/student.html?preview=1" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;text-decoration:none;padding:5px 10px;border:1px solid #444;border-radius:4px;">Student view →</a>
+        <button onclick="signOut()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;background:none;border:1px solid #444;border-radius:4px;padding:5px 10px;cursor:pointer;">Sign out</button>
+      `;
+    }
     loadSongs();
     attachListeners();
   })();
@@ -240,9 +332,17 @@
     document.getElementById('tab-btn-songs').addEventListener('click', () => switchTab('songs'));
     document.getElementById('tab-btn-progress').addEventListener('click', () => switchTab('progress'));
 
+    // Progress sub-tabs
+    document.getElementById('ptab-btn-stereo').addEventListener('click', () => switchProgressTab('stereo'));
+    document.getElementById('ptab-btn-structure').addEventListener('click', () => switchProgressTab('structure'));
+    document.getElementById('ptab-btn-energy').addEventListener('click', () => switchProgressTab('energy'));
+
     // Songs tab
     document.getElementById('add-song-btn').addEventListener('click', openNewSong);
-    document.getElementById('refresh-btn').addEventListener('click', loadProgress);
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      progressLoaded = { stereo: false, structure: false, energy: false };
+      switchProgressTab(currentProgressTab);
+    });
     document.getElementById('clear-all-btn').addEventListener('click', openClearAll);
     document.getElementById('clear-all-cancel-btn').addEventListener('click', () => closeModal('clear-all-modal'));
     document.getElementById('clear-all-confirm-btn').addEventListener('click', confirmClearAll);
@@ -278,6 +378,26 @@
     document.getElementById('f-audio').addEventListener('input', e => previewYT(e.target.value));
   }
 
+  // ── PROGRESS SUB-TABS ──
+  let currentProgressTab = 'stereo';
+  let progressLoaded = { stereo: false, structure: false, energy: false };
+
+  function switchProgressTab(tab) {
+    currentProgressTab = tab;
+    document.querySelectorAll('.progress-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('ptab-btn-' + tab).classList.add('active');
+    document.querySelectorAll('[id^="ptab-"]').forEach(t => {
+      if (!t.id.startsWith('ptab-btn')) t.classList.add('hidden');
+    });
+    document.getElementById('ptab-' + tab).classList.remove('hidden');
+    if (!progressLoaded[tab]) {
+      progressLoaded[tab] = true;
+      if (tab === 'stereo') loadStereoProgress();
+      else if (tab === 'structure') loadStructureProgress();
+      else if (tab === 'energy') loadEnergyProgressTab();
+    }
+  }
+
   // ── TABS ──
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -286,7 +406,10 @@
     });
     document.getElementById('tab-btn-' + tab).classList.add('active');
     document.getElementById('tab-' + tab).classList.remove('hidden');
-    if (tab === 'progress') loadProgress();
+    if (tab === 'progress') {
+      progressLoaded = { stereo: false, structure: false, energy: false };
+      switchProgressTab('stereo');
+    }
   }
 
   // ── YOUTUBE HELPERS ──
@@ -624,6 +747,115 @@
     loadSongs();
   }
 
+  // ── PROGRESS HELPERS ──
+  async function getProfileMap() {
+    const { data: profiles } = await db.from('profiles').select('id, name, email');
+    const map = {};
+    (profiles || []).forEach(p => { map[p.id] = p.name || p.email || p.id; });
+    return map;
+  }
+
+  // ── STEREO MAP PROGRESS ──
+  async function loadStereoProgress() {
+    const wrap = document.getElementById('progress-wrap-stereo');
+    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+    const [{ data: songs }, { data: submissions }, profileMap] = await Promise.all([
+      db.from('songs').select('id, title').eq('published', true).eq('activity_type', 'stereo').order('created_at'),
+      db.from('submissions').select('student_id, song_id, overall_score, attempt_number').order('attempt_number', { ascending: true }).limit(1000),
+      getProfileMap()
+    ]);
+    if (!songs || songs.length === 0) { wrap.innerHTML = '<div class="empty"><div class="empty-text">No Stereo Map songs yet.</div></div>'; return; }
+    const songIds = new Set(songs.map(s => s.id));
+    const studentMap = {};
+    (submissions || []).filter(s => songIds.has(s.song_id)).forEach(s => {
+      const sid = s.student_id;
+      if (!studentMap[sid]) studentMap[sid] = { name: profileMap[sid] || sid, songs: {} };
+      if (!studentMap[sid].songs[s.song_id]) studentMap[sid].songs[s.song_id] = [];
+      studentMap[sid].songs[s.song_id].push(s);
+    });
+    Object.values(studentMap).forEach(st => Object.values(st.songs).forEach(a => a.sort((x,y) => x.attempt_number - y.attempt_number)));
+    const students = Object.values(studentMap).sort((a, b) => a.name.localeCompare(b.name));
+    if (students.length === 0) { wrap.innerHTML = '<div class="empty"><div class="empty-text">No submissions yet.</div></div>'; return; }
+    let html = `<div class="progress-table-wrap"><table class="progress-table"><thead><tr><th>Student</th>${songs.map(s => `<th>${esc(s.title)}</th>`).join('')}<th>Avg</th></tr></thead><tbody>`;
+    students.forEach(student => {
+      const bestScores = songs.map(s => {
+        const a = student.songs[s.id];
+        return a && a.length > 0 ? Math.max(...a.map(x => x.overall_score)) : null;
+      });
+      const submitted = bestScores.filter(s => s !== null);
+      const avg = submitted.length > 0 ? Math.round(submitted.reduce((a,b) => a+b, 0) / submitted.length) : null;
+      html += `<tr><td style="font-weight:500">${esc(student.name)}</td>`;
+      songs.forEach((song, i) => {
+        const attempts = student.songs[song.id];
+        if (!attempts || attempts.length === 0) { html += `<td><span class="score-pill none">—</span></td>`; return; }
+        html += `<td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${attempts.map(a => {
+          const c = a.overall_score >= 80 ? '#1D9E75' : a.overall_score >= 50 ? '#e09020' : '#e05050';
+          return `<span style="color:${c}">${a.overall_score}%</span>`;
+        }).join('<span style="color:#ccc"> → </span>')}</span></td>`;
+      });
+      const cls = avg !== null ? (avg >= 80 ? 'close' : avg >= 50 ? 'near' : 'far') : 'none';
+      html += `<td><span class="score-pill ${cls}">${avg !== null ? avg+'%' : '—'}</span></td></tr>`;
+    });
+    html += '</tbody></table></div><div style="font-size:11px;color:#aaa;margin-top:8px;font-family:IBM Plex Mono,monospace;">Score progression shown per song.</div>';
+    wrap.innerHTML = html;
+  }
+
+  // ── SONG STRUCTURE PROGRESS ──
+  async function loadStructureProgress() {
+    const wrap = document.getElementById('progress-wrap-structure');
+    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+    const [{ data: songs }, { data: submissions }, profileMap] = await Promise.all([
+      db.from('songs').select('id, title, timeline_key').eq('published', true).eq('activity_type', 'structure').order('created_at'),
+      db.from('submissions').select('student_id, song_id, student_positions, results, overall_score, attempt_number').order('attempt_number', { ascending: true }).limit(1000),
+      getProfileMap()
+    ]);
+    if (!songs || songs.length === 0) { wrap.innerHTML = '<div class="empty"><div class="empty-text">No Song Structure songs yet.</div></div>'; return; }
+    const songIds = new Set(songs.map(s => s.id));
+    const studentMap = {};
+    (submissions || []).filter(s => songIds.has(s.song_id)).forEach(s => {
+      const sid = s.student_id;
+      if (!studentMap[sid]) studentMap[sid] = { name: profileMap[sid] || sid, songs: {} };
+      if (!studentMap[sid].songs[s.song_id]) studentMap[sid].songs[s.song_id] = [];
+      studentMap[sid].songs[s.song_id].push(s);
+    });
+    Object.values(studentMap).forEach(st => Object.values(st.songs).forEach(a => a.sort((x,y) => x.attempt_number - y.attempt_number)));
+    const students = Object.values(studentMap).sort((a, b) => a.name.localeCompare(b.name));
+    let html = '';
+    songs.forEach(song => {
+      const answerKey = song.timeline_key || [];
+      html += `<div style="margin-bottom:24px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e0e0e0;">${esc(song.title)}</div>`;
+      if (students.length === 0) {
+        html += '<div style="font-size:13px;color:#aaa;padding:12px 0;">No submissions yet.</div>';
+      } else {
+        html += `<div class="progress-table-wrap"><table class="progress-table"><thead><tr><th>Student</th><th>Attempt</th>${answerKey.map((s,i) => `<th style="font-size:10px;min-width:60px;">${i+1}<br><span style="color:#bbb;font-weight:normal;">${esc(s)}</span></th>`).join('')}<th>Score</th></tr></thead><tbody>`;
+        students.forEach(student => {
+          const attempts = student.songs[song.id];
+          if (!attempts || attempts.length === 0) {
+            html += `<tr><td style="font-weight:500">${esc(student.name)}</td><td colspan="${answerKey.length+2}" style="color:#ccc;font-family:'IBM Plex Mono',monospace;font-size:11px;">—</td></tr>`;
+            return;
+          }
+          const last = attempts[attempts.length - 1];
+          const studentSlots = last.student_positions || [];
+          html += `<tr><td style="font-weight:500">${esc(student.name)}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#aaa;">${attempts.length}/3</td>`;
+          answerKey.forEach((correct, idx) => {
+            const ans = studentSlots[idx] || '—';
+            const isCorrect = ans === correct;
+            const bg = isCorrect ? '#1D9E7515' : '#e0505015';
+            const color = isCorrect ? '#1D9E75' : '#e05050';
+            html += `<td style="background:${bg};" title="Correct: ${correct}"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:${color};">${esc(ans)}</span></td>`;
+          });
+          const score = last.overall_score || 0;
+          const cls = score >= 80 ? 'close' : score >= 50 ? 'near' : 'far';
+          html += `<td><span class="score-pill ${cls}">${score}%</span></td></tr>`;
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div>';
+    });
+    if (!html) html = '<div class="empty"><div class="empty-text">No submissions yet.</div></div>';
+    wrap.innerHTML = html;
+  }
+
   // ── PROGRESS TAB ──
   async function loadProgress() {
     const wrap = document.getElementById('progress-wrap');
@@ -725,6 +957,12 @@
   }
 
   // ── ENERGY MAP PROGRESS ──
+  async function loadEnergyProgressTab() {
+    const wrap = document.getElementById('progress-wrap-energy');
+    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+    await loadEnergyProgress(wrap);
+  }
+
   async function loadEnergyProgress(wrap) {
     const { data: energySongs } = await db
       .from('songs')
