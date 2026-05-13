@@ -99,25 +99,7 @@
 <div class="modal-overlay" id="song-modal">
   <div class="modal" style="max-width:560px;">
     <div class="modal-title" id="song-modal-title">Add song</div>
-    <div class="modal-desc">Fill in the song details, then build the answer key below.</div>
-
-    <div class="field">
-      <label>Activity type</label>
-      <div style="display:flex;gap:10px;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 14px;">
-          <input type="radio" name="activity-type" id="type-stereo" value="stereo" checked style="accent-color:var(--accent);">
-          Stereo Map
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 14px;">
-          <input type="radio" name="activity-type" id="type-structure" value="structure" style="accent-color:var(--accent);">
-          Song Structure
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 14px;">
-          <input type="radio" name="activity-type" id="type-dynamics" value="dynamics" style="accent-color:var(--accent);">
-          Song Energy Map
-        </label>
-      </div>
-    </div>
+    <div class="modal-desc">Fill in the song details, then set instrument positions on the map below.</div>
 
     <div class="field">
       <label>Song title</label>
@@ -174,14 +156,22 @@
       <div class="readout" id="map-readout">Drag instruments to set the answer key</div>
     </div>
 
+    <!-- SONG ENERGY MAP SECTION -->
+    <div id="dynamics-section" style="display:none;">
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div style="font-size:13px; color:var(--green); font-weight:500; margin-bottom:6px;">⚡ Song Energy Map</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.6;">No answer key needed. Students will track the energy level of this song in real time as it plays. Just provide a title, artist, and YouTube URL above, then publish.</div>
+      </div>
+    </div>
+
     </div>
 
     <!-- SONG STRUCTURE SECTION -->
     <div id="structure-section" style="display:none;">
       <div class="field">
         <label>Section types available to students</label>
-        <div style="display:flex; flex-wrap:wrap; gap:6px; padding:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:4px;" id="section-type-toggles"></div>
-        <div style="font-size:11px; color:var(--text3); margin-top:4px;">Uncheck types that don't appear in this song.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:4px;" id="section-type-toggles"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Uncheck types that don't appear in this song.</div>
       </div>
       <div class="field">
         <label>Answer key — drag sections from palette to build the correct sequence</label>
@@ -192,9 +182,9 @@
 
     <!-- SONG ENERGY MAP SECTION -->
     <div id="dynamics-section" style="display:none;">
-      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
-        <div style="font-size:13px; color:var(--green); font-weight:500; margin-bottom:6px;">⚡ Song Energy Map</div>
-        <div style="font-size:13px; color:var(--text2); line-height:1.6;">No answer key needed. Students will track the energy level of this song in real time as it plays. Just provide a title, artist, and YouTube URL above, then publish.</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--green);font-weight:500;margin-bottom:6px;">⚡ Song Energy Map</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;">No answer key needed. Students will track the energy level of this song in real time as it plays. Just provide a title, artist, and YouTube URL above, then publish.</div>
       </div>
     </div>
 
@@ -219,7 +209,9 @@
   let teacherInstruments = [];
   let editingSongId = null;
   let teacherTimelineSlots = [null, null, null, null, null, null, null, null];
-  let activeSectionTypes = [...DEFAULT_SECTION_TYPES];
+  const FALLBACK_SECTION_TYPES = ['Intro','Verse','Pre-chorus','Chorus','Bridge','Solo','Instrumental','Outro','Coda'];
+  const _defaultTypes = () => typeof DEFAULT_SECTION_TYPES !== 'undefined' ? [...DEFAULT_SECTION_TYPES] : [...FALLBACK_SECTION_TYPES];
+  let activeSectionTypes = _defaultTypes();
   let currentActivityType = 'stereo';
 
   // ── INIT ──
@@ -378,8 +370,8 @@
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span class="published-badge ${song.published ? 'yes' : 'no'}">${song.published ? 'Published' : 'Draft'}</span>
-            <button class="btn sm archive-btn" data-song-id="${song.id}" data-archived="${isArchived}">${isArchived ? 'Unarchive' : 'Archive'}</button>
-            <button class="btn sm edit-btn" data-song-id="${song.id}">Edit</button>
+            <button class="btn sm archive-btn">${isArchived ? 'Unarchive' : 'Archive'}</button>
+            <button class="btn sm edit-btn">Edit</button>
           </div>
         `;
         card.querySelector('.edit-btn').addEventListener('click', () => editSong(song.id));
@@ -436,7 +428,7 @@
   function renderSectionTypeToggles() {
     const container = document.getElementById('section-type-toggles');
     container.innerHTML = '';
-    DEFAULT_SECTION_TYPES.forEach(type => {
+    _defaultTypes().forEach(type => {
       const label = document.createElement('label');
       label.style.cssText = 'display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;';
       const cb = document.createElement('input');
@@ -462,7 +454,7 @@
     editingSongId = null;
     teacherInstruments = [];
     teacherTimelineSlots = [null, null, null, null, null, null, null, null];
-    activeSectionTypes = [...DEFAULT_SECTION_TYPES];
+    activeSectionTypes = _defaultTypes();
     currentActivityType = 'stereo';
     document.getElementById('type-stereo').checked = true;
     document.getElementById('song-modal-title').textContent = 'Add song';
@@ -487,8 +479,9 @@
     currentActivityType = song.activity_type || 'stereo';
     teacherInstruments = (song.instruments || []).map(i => ({ ...i }));
     teacherTimelineSlots = song.timeline_key || [null,null,null,null,null,null,null,null];
-    activeSectionTypes = song.section_types || [...DEFAULT_SECTION_TYPES];
-    document.getElementById(currentActivityType === 'stereo' ? 'type-stereo' : 'type-structure').checked = true;
+    activeSectionTypes = song.section_types || _defaultTypes();
+    const radioId = currentActivityType === 'stereo' ? 'type-stereo' : currentActivityType === 'structure' ? 'type-structure' : 'type-dynamics';
+    document.getElementById(radioId).checked = true;
     document.getElementById('song-modal-title').textContent = 'Edit song';
     document.getElementById('f-title').value = song.title || '';
     document.getElementById('f-artist').value = song.artist || '';
@@ -596,14 +589,13 @@
     if (currentActivityType === 'structure' && teacherTimelineSlots.filter(s => s).length === 0) {
       showToast('Please add at least one section to the timeline', 'error'); return;
     }
-    // dynamics only needs title + audio url — no answer key required
 
     const payload = {
       title, artist, audio_url: audioUrl, published,
       activity_type: currentActivityType,
       instruments: currentActivityType === 'stereo' ? teacherInstruments.map(i => ({ ...i })) : [],
       timeline_key: currentActivityType === 'structure' ? teacherTimelineSlots : [],
-      section_types: currentActivityType === 'structure' ? activeSectionTypes : DEFAULT_SECTION_TYPES,
+      section_types: currentActivityType === 'structure' ? activeSectionTypes : _defaultTypes(),
       updated_at: new Date().toISOString(),
     };
 
@@ -637,9 +629,10 @@
     const wrap = document.getElementById('progress-wrap');
     wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
 
-    const [{ data: songs }, { data: submissions }] = await Promise.all([
+    const [{ data: songs }, { data: submissions }, { data: profiles }] = await Promise.all([
       db.from('songs').select('id, title').eq('published', true).order('created_at'),
-      db.from('submissions').select('student_id, song_id, overall_score, attempt_number, profiles(name, email)').order('attempt_number', { ascending: true }).limit(1000)
+      db.from('submissions').select('student_id, song_id, overall_score, attempt_number').order('attempt_number', { ascending: true }).limit(1000),
+      db.from('profiles').select('id, name, email')
     ]);
 
     if (!songs || songs.length === 0) {
@@ -651,13 +644,17 @@
       return;
     }
 
+    // Build profile lookup map
+    const profileMap = {};
+    (profiles || []).forEach(p => { profileMap[p.id] = p.name || p.email || p.id; });
+
     // Group by student, then by song — track all attempts
     const studentMap = {};
     submissions.forEach(s => {
       const sid = s.student_id;
       if (!studentMap[sid]) {
         studentMap[sid] = {
-          name: s.profiles?.name || s.profiles?.email || sid,
+          name: profileMap[sid] || sid,
           songs: {}
         };
       }
@@ -724,7 +721,6 @@
     html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">Score progression shown per song. Colors indicate performance level.</div>';
     wrap.innerHTML = html;
 
-    // Load energy map section
     await loadEnergyProgress(wrap);
   }
 
@@ -739,41 +735,39 @@
 
     if (!energySongs || energySongs.length === 0) return;
 
-    const { data: submissions } = await db
-      .from('submissions')
-      .select('song_id, student_id, dynamics_curve, submitted_at, profiles(name, email)')
-      .in('song_id', energySongs.map(s => s.id))
-      .not('dynamics_curve', 'eq', '[]');
+    const [{ data: submissions }, { data: energyProfiles }] = await Promise.all([
+      db.from('submissions')
+        .select('song_id, student_id, dynamics_curve, submitted_at')
+        .in('song_id', energySongs.map(s => s.id))
+        .not('dynamics_curve', 'eq', '[]'),
+      db.from('profiles').select('id, name, email')
+    ]);
 
     if (!submissions || submissions.length === 0) return;
 
-    // Group submissions by song
+    const energyProfileMap = {};
+    (energyProfiles || []).forEach(p => { energyProfileMap[p.id] = p.name || p.email || p.id; });
+
     const bySong = {};
     submissions.forEach(s => {
       if (!bySong[s.song_id]) bySong[s.song_id] = [];
       bySong[s.song_id].push(s);
     });
 
-    // Build section
     const section = document.createElement('div');
     section.style.cssText = 'margin-top:32px;';
-    section.innerHTML = `
-      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:16px;">Song Energy Maps</div>
-    `;
+    section.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:16px;">Song Energy Maps</div>`;
 
     energySongs.forEach(song => {
       const subs = bySong[song.id];
       if (!subs || subs.length === 0) return;
 
-      const names = subs.map(s => s.profiles?.name || s.profiles?.email || 'Student');
+      const names = subs.map(s => energyProfileMap[s.student_id] || 'Student');
       const curves = subs.map(s => s.dynamics_curve || []);
-
-      // Find duration from longest curve
       const duration = Math.max(...curves.map(c => c.length > 0 ? c[c.length-1].time : 0), 60);
 
       const songBlock = document.createElement('div');
       songBlock.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;';
-
       const canvasId = 'energy-overlay-' + song.id;
       songBlock.innerHTML = `
         <div style="font-size:15px;font-weight:500;margin-bottom:4px;">${esc(song.title)}</div>
@@ -781,23 +775,20 @@
         <div style="width:100%;height:200px;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px;">
           <canvas id="${canvasId}" style="width:100%;height:100%;display:block;"></canvas>
         </div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:16px;" id="energy-nav-${song.id}">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
           <button class="btn sm" id="energy-prev-${song.id}">←</button>
           <span style="font-size:14px;font-weight:500;min-width:140px;text-align:center;" id="energy-name-${song.id}">All students</span>
           <button class="btn sm" id="energy-next-${song.id}">→</button>
         </div>
       `;
-
       section.appendChild(songBlock);
 
-      // After DOM insert, draw overlay and wire navigation
       setTimeout(() => {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight || 200;
-
-        let currentIdx = -1; // -1 = all students
+        let currentIdx = -1;
 
         function drawEnergyProgress() {
           const ctx = canvas.getContext('2d');
@@ -811,7 +802,6 @@
           ctx.fillStyle = 'rgba(15,17,23,0.8)';
           ctx.fillRect(0, 0, W, H);
 
-          // Grid
           ctx.strokeStyle = 'rgba(255,255,255,0.06)';
           ctx.lineWidth = 1;
           for (let i = 1; i <= 9; i++) {
@@ -819,7 +809,6 @@
             ctx.beginPath(); ctx.moveTo(PAD_LEFT, y); ctx.lineTo(PAD_LEFT + graphW, y); ctx.stroke();
           }
 
-          // Y labels
           ctx.fillStyle = 'rgba(255,255,255,0.3)';
           ctx.font = '10px DM Mono, monospace';
           ctx.textAlign = 'right';
@@ -828,7 +817,6 @@
             ctx.fillText(v, PAD_LEFT-4, y+3);
           });
 
-          // X labels
           ctx.textAlign = 'center';
           const tickCount = Math.min(8, Math.floor(duration/30));
           const tickInterval = duration / (tickCount || 1);
@@ -839,10 +827,8 @@
             ctx.fillText(`${mins}:${secs.toString().padStart(2,'0')}`, x, H-6);
           }
 
-          // Draw curves
           curves.forEach((curve, i) => {
             if (!curve || curve.length < 2) return;
-            const isActive = currentIdx === -1 || currentIdx === i;
             const color = overlayColors[i % overlayColors.length];
             ctx.globalAlpha = currentIdx === -1 ? 0.85 : (currentIdx === i ? 1 : 0.15);
             ctx.beginPath();
@@ -857,7 +843,6 @@
             ctx.globalAlpha = 1;
           });
 
-          // Update name display
           const nameEl = document.getElementById('energy-name-' + song.id);
           if (nameEl) nameEl.textContent = currentIdx === -1 ? 'All students' : names[currentIdx];
         }
@@ -875,7 +860,6 @@
           currentIdx = currentIdx >= curves.length - 1 ? -1 : currentIdx + 1;
           drawEnergyProgress();
         });
-
       }, 100);
     });
 
