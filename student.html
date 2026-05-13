@@ -1247,7 +1247,8 @@
 
     const { error } = await db.from('submissions').insert({
       student_id: user.id,
-      song_id: songId || '00000000-0000-0000-0000-000000000000',
+      song_id: energyIsStudentSong ? null : songId,
+      student_song_id: energyIsStudentSong ? songId : null,
       student_positions: [],
       results: [],
       overall_score: 0,
