@@ -749,9 +749,17 @@
 
   // ── PROGRESS HELPERS ──
   async function getProfileMap() {
-    const { data: profiles } = await db.from('profiles').select('id, name, email');
+    // Fetch profiles via submissions join (teachers can read submissions + profiles via that path)
+    const { data: subs } = await db
+      .from('submissions')
+      .select('student_id, profiles(id, name, email)')
+      .limit(500);
     const map = {};
-    (profiles || []).forEach(p => { map[p.id] = p.name || p.email || p.id; });
+    (subs || []).forEach(s => {
+      if (s.profiles && s.student_id) {
+        map[s.student_id] = s.profiles.name || s.profiles.email || s.student_id;
+      }
+    });
     return map;
   }
 
