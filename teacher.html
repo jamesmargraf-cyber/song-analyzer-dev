@@ -879,18 +879,15 @@
 
     if (!energySongs || energySongs.length === 0) return;
 
-    const [{ data: submissions }, { data: energyProfiles }] = await Promise.all([
+    const [{ data: submissions }, energyProfileMap] = await Promise.all([
       db.from('submissions')
         .select('song_id, student_id, dynamics_curve, submitted_at')
         .in('song_id', energySongs.map(s => s.id))
         .not('dynamics_curve', 'eq', '[]'),
-      db.from('profiles').select('id, name, email')
+      getProfileMap()
     ]);
 
     if (!submissions || submissions.length === 0) return;
-
-    const energyProfileMap = {};
-    (energyProfiles || []).forEach(p => { energyProfileMap[p.id] = p.name || p.email || p.id; });
 
     const bySong = {};
     submissions.forEach(s => {
