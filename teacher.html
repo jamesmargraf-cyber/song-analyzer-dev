@@ -865,8 +865,9 @@
     // ── ENERGY MAP PROGRESS ──
   async function loadEnergyProgressTab() {
     const wrap = document.getElementById('progress-wrap-energy');
-    wrap.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+    wrap.innerHTML = '';
     await loadEnergyProgress(wrap);
+    if (!wrap.innerHTML) wrap.innerHTML = '<div class="empty"><div class="empty-text">No submissions yet.</div></div>';
   }
 
   async function loadEnergyProgress(wrap) {
