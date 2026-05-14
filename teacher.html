@@ -877,7 +877,7 @@
       .eq('published', true)
       .order('created_at');
 
-    if (!energySongs || energySongs.length === 0) return;
+    if (!energySongs || energySongs.length === 0) { wrap.innerHTML = '<div class="empty"><div class="empty-text">No Song Energy Map songs yet.</div></div>'; return; }
 
     const [{ data: submissions }, energyProfileMap] = await Promise.all([
       db.from('submissions')
@@ -887,7 +887,7 @@
       getProfileMap()
     ]);
 
-    if (!submissions || submissions.length === 0) return;
+    if (!submissions || submissions.length === 0) { wrap.innerHTML = '<div class="empty"><div class="empty-text">No energy map submissions yet.</div></div>'; return; }
 
     const bySong = {};
     submissions.forEach(s => {
